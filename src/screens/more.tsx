@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow'
 import { Ionicons } from '@expo/vector-icons'
 import { googleAvailable } from '../lib/google'
 import { syncNow, turnOffSync, turnOnSync, useSyncBusy } from '../lib/syncRunner'
@@ -25,7 +26,7 @@ import { openUpdatePrompt } from '../ui/UpdatePrompt'
 import { openUrl } from './Settings'
 
 export function CurrencyScreen() {
-  const { settings, setSettings } = useStore()
+  const { settings, setSettings } = useStore(useShallow((s) => ({ settings: s.settings, setSettings: s.setSettings })))
   const [q, setQ] = useState('')
   const list = CURRENCIES.filter((c) => !q || `${c.code} ${c.name}`.toLowerCase().includes(q.toLowerCase()))
   return (
@@ -55,7 +56,7 @@ const timeLabel = (t: string): string => {
 }
 
 export function NotificationsScreen() {
-  const { settings, setSettings, subs } = useStore()
+  const { settings, setSettings, subs } = useStore(useShallow((s) => ({ settings: s.settings, setSettings: s.setSettings, subs: s.subs })))
   const [tested, setTested] = useState<string | null>(null)
   return (
     <Page header={<Header title="Notifications" />}>
@@ -106,7 +107,7 @@ async function saveText(name: string, content: string, mime: string): Promise<vo
 const csvCell = (v: string | number): string => (/[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v))
 
 export function DataScreen() {
-  const { subs, replaceAll, eraseAll, lists, categories } = useStore()
+  const { subs, replaceAll, eraseAll, lists, categories } = useStore(useShallow((s) => ({ subs: s.subs, replaceAll: s.replaceAll, eraseAll: s.eraseAll, lists: s.lists, categories: s.categories })))
   const [note, setNote] = useState<string | null>(null)
   const stamp = new Date().toISOString().slice(0, 10)
 
@@ -206,7 +207,7 @@ export function Guide() {
 
 export function UpdatesScreen() {
   const u = useUpdate()
-  const { settings, setSettings } = useStore()
+  const { settings, setSettings } = useStore(useShallow((s) => ({ settings: s.settings, setSettings: s.setSettings })))
   const busy = u.state === 'checking' || u.state === 'downloading' || u.state === 'installing'
   const message =
     u.state === 'checking'

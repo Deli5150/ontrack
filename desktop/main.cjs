@@ -263,13 +263,16 @@ app.whenReady().then(() => {
 async function screenshots(dir) {
   const wait = (ms) => new Promise((r) => setTimeout(r, ms))
   fs.mkdirSync(dir, { recursive: true })
+  win.webContents.on('console-message', (e) => {
+    if (e.level === 'warning' || e.level === 'error') console.log(`[page ${e.level}] ${e.message}`)
+  })
   await wait(4000)
   const steps = (process.env.ONTRACK_SHOT_STEPS || 'home:,calendar:Calendar,settings:Settings').split(',')
   for (const step of steps) {
     const [name, ...clicks] = step.split(':')
     for (const text of clicks.filter(Boolean)) {
       if (text.startsWith('!')) {
-        await win.webContents.executeJavaScript(text.slice(1))
+        await win.webContents.executeJavaScript(text.slice(1).replace(/%2C/g, ',').replace(/%3A/g, ':'))
         await wait(900)
         continue
       }

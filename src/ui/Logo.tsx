@@ -1,6 +1,6 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { Image } from 'expo-image'
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import { Text, View, type ViewStyle } from 'react-native'
 import type { Logo as LogoT } from '../lib/types'
 
@@ -25,7 +25,7 @@ interface Props {
 }
 
 /** A subscription's round logo: an official SVGL logo, a website's icon, an icon, an emoji, an uploaded image, or its initial. */
-export function Logo({ logo, name, color, size = 40, style }: Props) {
+export const Logo = memo(function Logo({ logo, name, color, size = 40, style }: Props) {
   const [failed, setFailed] = useState<string | null>(null)
   const base: ViewStyle = { width: size, height: size, borderRadius: size / 2, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: color }
   if (logo?.kind === 'svg' && failed !== logo.light) {
@@ -62,4 +62,4 @@ export function Logo({ logo, name, color, size = 40, style }: Props) {
       <Text style={{ color: onColor(color), fontWeight: '700', fontSize: size * 0.42 }}>{(name.trim()[0] ?? '?').toUpperCase()}</Text>
     </View>
   )
-}
+})

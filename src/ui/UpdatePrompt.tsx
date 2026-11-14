@@ -1,13 +1,15 @@
+import { FadeIn } from './motion'
+import { useShallow } from 'zustand/react/shallow'
 import { Ionicons } from '@expo/vector-icons'
 import { Image } from 'expo-image'
 import * as Linking from 'expo-linking'
 import { useEffect, useState } from 'react'
-import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, Text, View } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { ActivityIndicator, Platform, Pressable, ScrollView, Text, View } from 'react-native'
 import { create } from 'zustand'
 import { useStore } from '../lib/store'
 import { downloadUpdate, installUpdate, useUpdate } from '../lib/updater'
 import { desktop } from '../lib/storage'
+import { Sheet } from './overlays'
 import { colors } from './theme'
 
 // The "Update available" sheet, shown when a check finds a new version (and from Settings → Updates).
@@ -51,10 +53,9 @@ function ChoiceRow({ icon, iconNode, title, sub, onPress }: { icon?: number; ico
 }
 
 export function UpdatePrompt() {
-  const insets = useSafeAreaInsets()
   const u = useUpdate()
   const { open, page, forceChooser } = useUpdatePrompt()
-  const { settings, setSettings, loaded } = useStore()
+  const { settings, setSettings, loaded } = useStore(useShallow((s) => ({ settings: s.settings, setSettings: s.setSettings, loaded: s.loaded })))
   const [notes, setNotes] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const ios = (Platform.OS === 'ios' && !desktop) || forceChooser
@@ -112,13 +113,11 @@ export function UpdatePrompt() {
   const card = { backgroundColor: colors.bg, borderRadius: 34, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' as const }
 
   return (
-    <Modal visible={open} transparent animationType="slide" onRequestClose={page === 'choose' ? () => useUpdatePrompt.setState({ page: 'prompt' }) : later}>
-      <Pressable onPress={page === 'prompt' ? later : undefined} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end', alignItems: 'center' }}>
-        <Pressable onPress={() => {}} style={{ width: '100%', maxWidth: 520, padding: 8, paddingBottom: insets.bottom + 8, maxHeight: '100%' }}>
+    <Sheet visible={open} maxWidth={520} onClose={page === 'choose' ? () => useUpdatePrompt.setState({ page: 'prompt' }) : later} dismissable={page === 'prompt'}>
           <View style={[card, { paddingHorizontal: 20, paddingBottom: 18, paddingTop: 10, maxHeight: '100%' }]}>
             <View style={{ alignSelf: 'center', width: 40, height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.25)', marginBottom: 10 }} />
             {page === 'prompt' ? (
-              <>
+              <FadeIn key="prompt" from={-24}>
                 <View style={{ alignItems: 'center' }}>
                   <Image source={require('../../assets/icon.png')} style={{ width: 76, height: 76, borderRadius: 18, marginTop: 8 }} />
                   <View style={{ marginTop: 14, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: colors.accentSoft }}>
@@ -155,9 +154,9 @@ export function UpdatePrompt() {
                     <Text style={{ color: colors.faint, fontSize: 16 }}>Skip this version</Text>
                   </Pressable>
                 </View>
-              </>
+              </FadeIn>
             ) : (
-              <>
+              <FadeIn key="choose" from={32}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
                   <Pressable onPress={() => useUpdatePrompt.setState({ page: 'prompt' })} hitSlop={10} style={{ width: 36 }} accessibilityLabel="Back">
                     <Ionicons name="chevron-back" size={26} color={colors.text} />
@@ -184,11 +183,9 @@ export function UpdatePrompt() {
                 <Pressable onPress={close} style={{ alignItems: 'center', paddingVertical: 14, marginTop: 12 }}>
                   <Text style={{ color: colors.dim, fontSize: 17 }}>Cancel</Text>
                 </Pressable>
-              </>
+              </FadeIn>
             )}
           </View>
-        </Pressable>
-      </Pressable>
-    </Modal>
+    </Sheet>
   )
 }

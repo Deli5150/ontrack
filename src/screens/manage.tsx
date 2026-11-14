@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow'
 import { Ionicons } from '@expo/vector-icons'
 import { useState } from 'react'
 import { Pressable, Text, TextInput, View } from 'react-native'
@@ -30,7 +31,7 @@ function NameInput({ initial, onSubmit, placeholder }: { initial?: string; onSub
 }
 
 export function Lists() {
-  const { lists, subs, saveList, deleteList } = useStore()
+  const { lists, subs, saveList, deleteList } = useStore(useShallow((s) => ({ lists: s.lists, subs: s.subs, saveList: s.saveList, deleteList: s.deleteList })))
   const [editing, setEditing] = useState<string | null>(null)
   return (
     <Page header={<Header title="Lists" right={<Pressable onPress={() => setEditing('new')} hitSlop={10}><Ionicons name="add-circle" size={30} color={colors.accent} /></Pressable>} />}>
@@ -63,7 +64,7 @@ export function Lists() {
 }
 
 export function Categories() {
-  const { categories, subs, saveCategory, deleteCategory } = useStore()
+  const { categories, subs, saveCategory, deleteCategory } = useStore(useShallow((s) => ({ categories: s.categories, subs: s.subs, saveCategory: s.saveCategory, deleteCategory: s.deleteCategory })))
   const [editing, setEditing] = useState<string | null>(null)
   return (
     <Page header={<Header title="Categories" right={<Pressable onPress={() => setEditing('new')} hitSlop={10}><Ionicons name="add-circle" size={30} color={colors.accent} /></Pressable>} />}>
@@ -126,7 +127,7 @@ function useAddMethod(onAdded?: (id: string) => void) {
 }
 
 export function PaymentMethods() {
-  const { paymentMethods, subs, deletePaymentMethod } = useStore()
+  const { paymentMethods, subs, deletePaymentMethod } = useStore(useShallow((s) => ({ paymentMethods: s.paymentMethods, subs: s.subs, deletePaymentMethod: s.deletePaymentMethod })))
   const add = useAddMethod()
   return (
     <Page header={<Header title="Payment methods" right={<Pressable onPress={add.start} hitSlop={10}><Ionicons name="add-circle" size={30} color={colors.accent} /></Pressable>} />}>
@@ -152,8 +153,8 @@ export function PaymentMethods() {
 
 export function PaymentPick() {
   const nav = useFlowNav()
-  const { paymentMethods } = useStore()
-  const { sub, set } = useDraft()
+  const { paymentMethods } = useStore(useShallow((s) => ({ paymentMethods: s.paymentMethods })))
+  const { sub, set } = useDraft(useShallow((s) => ({ sub: s.sub, set: s.set })))
   const pick = (id: string | null) => {
     set({ paymentMethodId: id })
     nav.goBack()

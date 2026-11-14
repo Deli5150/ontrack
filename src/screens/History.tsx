@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow'
 import { useState } from 'react'
 import { Pressable, Text, TextInput, View } from 'react-native'
 import { formatMoney } from '../lib/currency'
@@ -8,7 +9,7 @@ import { confirm, pickDate } from '../ui/overlays'
 import { colors } from '../ui/theme'
 
 export function BillingHistory() {
-  const { sub, editingId } = useDraft()
+  const { sub, editingId } = useDraft(useShallow((s) => ({ sub: s.sub, editingId: s.editingId })))
   const full = { ...sub, id: editingId ?? 'draft', createdAt: 0 }
   const paid = pastPayments(full)
   const total = paid.reduce((sum, d) => sum + priceOn(full, d), 0)
@@ -36,7 +37,7 @@ export function BillingHistory() {
 }
 
 export function PriceHistory() {
-  const { sub, set } = useDraft()
+  const { sub, set } = useDraft(useShallow((s) => ({ sub: s.sub, set: s.set })))
   const [adding, setAdding] = useState(false)
   const [date, setDate] = useState(today())
   const [price, setPrice] = useState('')

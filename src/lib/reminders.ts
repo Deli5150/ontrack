@@ -64,12 +64,17 @@ async function scheduleNative(reminders: Reminder[]): Promise<void> {
 }
 
 let timer: ReturnType<typeof setTimeout> | null = null
+/** What was last scheduled, so edits that don't change any reminder (most of them) schedule nothing. */
+let lastScheduled = ''
 
-/** Re-schedules every reminder (shortly, so a burst of edits schedules once). */
-export function syncReminders(subs: Subscription[], settings: Settings): void {
+/** Re-schedules every reminder (shortly, so a burst of edits schedules once), when they changed. */
+export function syncReminders(subs: Subscription[], settings: Settings, force = false): void {
   if (timer) clearTimeout(timer)
   timer = setTimeout(() => {
     const reminders = computeReminders(subs, settings)
+    const key = JSON.stringify(reminders)
+    if (!force && key === lastScheduled) return
+    lastScheduled = key
     if (desktop) desktop.setReminders(reminders)
     else if (Platform.OS !== 'web') scheduleNative(reminders).catch((e) => console.warn('OnTrack: reminders', e))
   }, 1500)

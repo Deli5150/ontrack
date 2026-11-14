@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow'
 import { Ionicons } from '@expo/vector-icons'
 import { useState } from 'react'
 import { Pressable, Text, View } from 'react-native'
@@ -23,7 +24,7 @@ const DIMS = [
 ]
 
 export function AppearanceScreen() {
-  const { settings, setSettings } = useStore()
+  const { settings, setSettings } = useStore(useShallow((s) => ({ settings: s.settings, setSettings: s.setSettings })))
   const photo = useWallpaperPhoto((s) => s.uri)
   const [error, setError] = useState<string | null>(null)
 

@@ -1,3 +1,5 @@
+import { FadeIn } from '../ui/motion'
+import { useShallow } from 'zustand/react/shallow'
 import { Ionicons } from '@expo/vector-icons'
 import { useMemo, useRef, useState } from 'react'
 import { PanResponder, Pressable, ScrollView, Text, View } from 'react-native'
@@ -25,7 +27,7 @@ interface Payment {
 export default function Calendar() {
   const nav = useRootNav()
   const insets = useSafeAreaInsets()
-  const { subs, settings, rates } = useStore()
+  const { subs, settings, rates } = useStore(useShallow((s) => ({ subs: s.subs, settings: s.settings, rates: s.rates })))
   const t = today()
   const [month, setMonth] = useState(t.slice(0, 8) + '01')
   const [y, m] = month.split('-').map(Number)
@@ -50,7 +52,12 @@ export default function Calendar() {
   const total = all.reduce((s, p) => s + p.amount, 0)
   const upcoming = all.filter((p) => p.date >= t).reduce((s, p) => s + p.amount, 0)
 
-  const go = (n: number) => setMonth((cur) => addMonths(cur, n, 1))
+  // Which way the last month change went, so the new month slides in from that side.
+  const dir = useRef(0)
+  const go = (n: number) => {
+    dir.current = n
+    setMonth((cur) => addMonths(cur, n, 1))
+  }
   const pan = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 24 && Math.abs(g.dx) > Math.abs(g.dy) * 2,
@@ -99,7 +106,7 @@ export default function Calendar() {
       <Pressable onPress={() => go(1)} hitSlop={10} style={arrow} accessibilityLabel="Next month">
         <Ionicons name="chevron-forward" size={18} color={colors.text} />
       </Pressable>
-      {!isThisMonth && <Pill label="Today" onPress={() => setMonth(t.slice(0, 8) + '01')} />}
+      {!isThisMonth && <Pill label="Today" onPress={() => ((dir.current = month < t ? 1 : -1), setMonth(t.slice(0, 8) + '01'))} />}
     </View>
   )
 
@@ -119,6 +126,7 @@ export default function Calendar() {
   )
 
   const grid = (
+    <FadeIn key={month} from={dir.current * 28} duration={200}>
     <View {...pan.panHandlers}>
       <View style={{ flexDirection: 'row', marginBottom: 8 }}>
         {WEEKDAYS.map((d) => (
@@ -153,6 +161,7 @@ export default function Calendar() {
         })}
       </View>
     </View>
+    </FadeIn>
   )
 
   if (wide) {

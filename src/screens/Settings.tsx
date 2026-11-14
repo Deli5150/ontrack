@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow'
 import { Ionicons } from '@expo/vector-icons'
 import { Image } from 'expo-image'
 import * as Linking from 'expo-linking'
@@ -19,7 +20,7 @@ export const openUrl = (url: string): void => {
 
 export default function Settings() {
   const nav = useRootNav()
-  const { settings, subs, sync } = useStore()
+  const { settings, subs, sync } = useStore(useShallow((s) => ({ settings: s.settings, subs: s.subs, sync: s.sync })))
   const update = useUpdate()
   const updateValue = update.state === 'available' || update.state === 'ready' ? `${update.version} available` : `v${VERSION}`
   return (

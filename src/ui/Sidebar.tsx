@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow'
 import { Ionicons } from '@expo/vector-icons'
 import { Image } from 'expo-image'
 import { Pressable, Text, View } from 'react-native'
@@ -13,7 +14,7 @@ import { colors } from './theme'
 /** The desktop app's navigation, on the left of the window. */
 export function Sidebar({ onTab, onAdd }: { onTab: (t: TabKey) => void; onAdd: () => void }) {
   const tab = useTab((s) => s.tab)
-  const { subs, settings, rates, sync } = useStore()
+  const { subs, settings, rates, sync } = useStore(useShallow((s) => ({ subs: s.subs, settings: s.settings, rates: s.rates, sync: s.sync })))
   const syncing = useSyncBusy()
   const active = subs.filter(isActive)
   const monthly = active.reduce((sum, s) => sum + convert(monthlyCost(s), s.currency, settings.currency, rates), 0)

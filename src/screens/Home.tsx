@@ -1,5 +1,7 @@
+import { PressableScale } from '../ui/motion'
+import { useShallow } from 'zustand/react/shallow'
 import { Ionicons } from '@expo/vector-icons'
-import { useMemo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { convert, formatMoney } from '../lib/currency'
@@ -21,11 +23,12 @@ const SORTS: Array<{ key: SortKey; label: string }> = [
   { key: 'name', label: 'Name' }
 ]
 
-export function SubRow({ sub, onPress }: { sub: Subscription; onPress: () => void }) {
+/** A subscription in the list (redrawn only when that subscription changes). */
+export const SubRow = memo(function SubRow({ sub, onPress }: { sub: Subscription; onPress: () => void }) {
   return (
-    <Pressable
+    <PressableScale
       onPress={onPress}
-      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', backgroundColor: pressed ? colors.cardHi : colors.card, borderRadius: 18, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 12, paddingVertical: 11, marginBottom: 8 })}
+      style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 18, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 12, paddingVertical: 11, marginBottom: 8 }}
     >
       <Logo logo={sub.logo} name={sub.name} color={sub.color} size={42} />
       <View style={{ flex: 1, marginLeft: 12 }}>
@@ -41,16 +44,16 @@ export function SubRow({ sub, onPress }: { sub: Subscription; onPress: () => voi
         {sub.type === 'recurring' && (sub.cycle.unit !== 'month' || sub.cycle.every !== 1) ? <Text style={{ color: colors.dim, fontSize: 12 }}>{cycleShort(sub.cycle)}</Text> : null}
       </Text>
       <Ionicons name="chevron-forward" size={16} color={colors.faint} style={{ marginLeft: 6 }} />
-    </Pressable>
+    </PressableScale>
   )
-}
+}, (a, b) => a.sub === b.sub)
 
 export default function Home() {
   const nav = useRootNav()
   const insets = useSafeAreaInsets()
   const { width } = useWindowDimensions()
   const [picked, setPicked] = useState<string | null>(null)
-  const { subs, lists, settings, rates, setSettings } = useStore()
+  const { subs, lists, settings, rates, setSettings } = useStore(useShallow((s) => ({ subs: s.subs, lists: s.lists, settings: s.settings, rates: s.rates, setSettings: s.setSettings })))
 
   const inList = useMemo(() => subsInList(subs, settings.listId), [subs, settings.listId])
   const toPref = (s: Subscription, amount: number) => convert(amount, s.currency, settings.currency, rates)

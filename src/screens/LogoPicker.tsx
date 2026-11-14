@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator'
 import * as ImagePicker from 'expo-image-picker'
@@ -25,18 +26,26 @@ function guesses(q: string): string[] {
 }
 
 function Swatches({ value, onChange }: { value: string; onChange: (c: string) => void }) {
+  // A fixed-height row (with room for the selected ring), so the grid below can't overlap it.
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12, flexGrow: 0 }} contentContainerStyle={{ gap: 10, paddingVertical: 2 }}>
-      {LOGO_COLORS.map((c) => (
-        <Pressable key={c} onPress={() => onChange(c)} style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: c, borderWidth: value === c ? 3 : 1, borderColor: value === c ? colors.accentHi : 'rgba(255,255,255,0.25)' }} />
-      ))}
-    </ScrollView>
+    <View style={{ height: 48, marginBottom: 6 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, alignItems: 'center', paddingHorizontal: 2, height: 48 }}>
+        {LOGO_COLORS.map((c) => (
+          <Pressable
+            key={c}
+            onPress={() => onChange(c)}
+            hitSlop={4}
+            style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: c, borderWidth: value === c ? 3 : 1, borderColor: value === c ? colors.accentHi : 'rgba(255,255,255,0.25)' }}
+          />
+        ))}
+      </ScrollView>
+    </View>
   )
 }
 
 export default function LogoPicker() {
   const nav = useFlowNav()
-  const { sub, set } = useDraft()
+  const { sub, set } = useDraft(useShallow((s) => ({ sub: s.sub, set: s.set })))
   const [tab, setTab] = useState<Tab>('search')
   const [query, setQuery] = useState(sub.logo?.kind === 'domain' ? '' : sub.name)
   const [bg, setBg] = useState(sub.logo?.kind === 'icon' || sub.logo?.kind === 'emoji' ? sub.logo.color : '#3b3650')
@@ -71,7 +80,7 @@ export default function LogoPicker() {
       <View style={{ paddingTop: 6 }}>
         <Header title="Add Logo" left="cancel" right={sub.logo ? <Pill label="Remove" onPress={() => choose(null)} /> : undefined} />
       </View>
-      <Column style={{ flex: 1 }}>
+      <Column style={{ flex: 1, minHeight: 0 }}>
         <Segmented<Tab>
           value={tab}
           onChange={setTab}
@@ -110,6 +119,7 @@ export default function LogoPicker() {
           <>
             <Swatches value={bg} onChange={setBg} />
             <FlatList
+              style={{ flex: 1, minHeight: 0 }}
               data={icons}
               numColumns={COLS}
               keyExtractor={([n]) => n}
@@ -128,6 +138,7 @@ export default function LogoPicker() {
           <>
             <Swatches value={bg} onChange={setBg} />
             <FlatList
+              style={{ flex: 1, minHeight: 0 }}
               data={emoji}
               numColumns={COLS}
               keyExtractor={([e]) => e}

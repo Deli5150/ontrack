@@ -1,5 +1,6 @@
-import { useMemo } from 'react'
-import { Pressable, Text, View } from 'react-native'
+import { FadeIn } from './motion'
+import { useEffect, useMemo, useRef } from 'react'
+import { Animated, Easing, Platform, Pressable, Text, View } from 'react-native'
 import Svg, { Circle, G, Path } from 'react-native-svg'
 import type { Logo as LogoT } from '../lib/types'
 import { Logo } from './Logo'
@@ -30,6 +31,9 @@ interface Props {
 const GAP_DEG = 2.4
 const MIN_SHARE = 0.018
 const OTHER = '__other'
+
+/** Taps on SVG shapes: onPress on phones; the web build needs a plain click handler. */
+const tap = (fn: () => void): object => (Platform.OS === 'web' ? { onClick: fn, style: { cursor: 'pointer' } } : { onPress: fn })
 
 function arc(cx: number, cy: number, r: number, start: number, end: number): string {
   const p = (deg: number) => {
@@ -62,11 +66,24 @@ export function SpendRing({ items, size, selected, onSelect, money }: Props) {
     })
   }, [items, total])
 
+  // Sweeps in once when it first appears.
+  const intro = useRef(new Animated.Value(0)).current
+  useEffect(() => {
+    Animated.timing(intro, { toValue: 1, duration: 700, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }).start()
+  }, [intro])
+
   const pick = selected ? items.find((i) => i.id === selected) : null
   const otherItems = items.filter((i) => total > 0 && i.cost / total < MIN_SHARE)
 
   return (
     <View style={{ width: size, height: size, alignSelf: 'center' }}>
+      <Animated.View
+        style={{
+          position: 'absolute',
+          opacity: intro,
+          transform: [{ rotate: intro.interpolate({ inputRange: [0, 1], outputRange: ['-60deg', '0deg'] }) }, { scale: intro.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] }) }]
+        }}
+      >
       <Svg width={size} height={size}>
         <Circle cx={c} cy={c} r={r} stroke="rgba(255,255,255,0.06)" strokeWidth={stroke} fill="none" />
         <G>
@@ -74,7 +91,7 @@ export function SpendRing({ items, size, selected, onSelect, money }: Props) {
             const on = selected === s.id || (selected === OTHER && s.id === OTHER)
             const full = s.end - s.start >= 359.5
             return full ? (
-              <Circle key={s.id} cx={c} cy={c} r={r} stroke={colors.accent} strokeWidth={stroke} fill="none" onPress={() => onSelect(selected === s.id ? null : s.id)} />
+              <Circle key={s.id} cx={c} cy={c} r={r} stroke={colors.accent} strokeWidth={stroke} fill="none" {...tap(() => onSelect(selected === s.id ? null : s.id))} />
             ) : (
               <Path
                 key={s.id}
@@ -84,13 +101,15 @@ export function SpendRing({ items, size, selected, onSelect, money }: Props) {
                 strokeWidth={on ? stroke + 6 : stroke}
                 strokeLinecap="butt"
                 fill="none"
-                onPress={() => onSelect(selected === s.id ? null : s.id)}
+                {...tap(() => onSelect(selected === s.id ? null : s.id))}
               />
             )
           })}
         </G>
       </Svg>
+      </Animated.View>
       <Pressable onPress={() => onSelect(null)} style={{ position: 'absolute', left: stroke * 2, right: stroke * 2, top: stroke * 2, bottom: stroke * 2, alignItems: 'center', justifyContent: 'center' }}>
+        <FadeIn key={selected ?? 'total'} duration={180} dy={4} style={{ alignItems: 'center' }}>
         {pick ? (
           <>
             <Logo logo={pick.logo} name={pick.name} color={pick.color} size={44} />
@@ -117,6 +136,7 @@ export function SpendRing({ items, size, selected, onSelect, money }: Props) {
             <Text style={{ color: colors.dim, fontSize: 14 }}>{`${money(total * 12)} a year`}</Text>
           </>
         )}
+        </FadeIn>
       </Pressable>
     </View>
   )

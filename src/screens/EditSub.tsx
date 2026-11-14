@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow'
 import { Ionicons } from '@expo/vector-icons'
 import { useState } from 'react'
 import { KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native'
@@ -87,8 +88,8 @@ function durationLabel(d: Duration): string {
 
 export default function EditSub() {
   const nav = useFlowNav()
-  const { sub, editingId, set } = useDraft()
-  const { lists, categories, paymentMethods, deleteSub, updateSub } = useStore()
+  const { sub, editingId, set } = useDraft(useShallow((s) => ({ sub: s.sub, editingId: s.editingId, set: s.set })))
+  const { lists, categories, paymentMethods, deleteSub, updateSub } = useStore(useShallow((s) => ({ lists: s.lists, categories: s.categories, paymentMethods: s.paymentMethods, deleteSub: s.deleteSub, updateSub: s.updateSub })))
   const [priceText, setPriceText] = useState(sub.price ? String(sub.price) : '')
   const canSave = sub.name.trim().length > 0
 

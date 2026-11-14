@@ -1,8 +1,8 @@
 import { DarkTheme, NavigationContainer, StackActions, createNavigationContainerRef, type NavigationState } from '@react-navigation/native'
 import { createNativeStackNavigator, type NativeStackScreenProps } from '@react-navigation/native-stack'
 import { StatusBar } from 'expo-status-bar'
-import { useEffect, useRef } from 'react'
-import { ActivityIndicator, AppState, Platform, Pressable, View } from 'react-native'
+import { memo, useEffect, useRef } from 'react'
+import { ActivityIndicator, Animated, AppState, Easing, Platform, Pressable, View } from 'react-native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { syncReminders } from './src/lib/reminders'
 import { desktop } from './src/lib/storage'
@@ -26,7 +26,7 @@ import { UpdatePrompt, useUpdatePrompt } from './src/ui/UpdatePrompt'
 import { useUpdate } from './src/lib/updater'
 import { TabBar } from './src/ui/TabBar'
 import { applyTheme, colors, THEMES } from './src/ui/theme'
-import { useTab, useWide } from './src/lib/layout'
+import { useTab, useWide, type TabKey } from './src/lib/layout'
 import { refreshSvgl } from './src/lib/svgl'
 import { loadWallpaperPhoto } from './src/lib/wallpaper'
 import { Sidebar } from './src/ui/Sidebar'
@@ -45,20 +45,34 @@ if (__DEV__ && typeof globalThis !== 'undefined') {
   }
 }
 
+const TAB_KEYS: TabKey[] = ['subs', 'calendar', 'settings']
+// Memoized: switching tabs re-renders the tab bar, not the screens.
+const HomeTab = memo(Home)
+const CalendarTab = memo(Calendar)
+const SettingsTab = memo(Settings)
+
+/** One tab's screen: kept mounted (it keeps its scroll and state) and faded in when shown. */
+function TabPane({ active, children }: { active: boolean; children: React.ReactNode }) {
+  const opacity = useRef(new Animated.Value(active ? 1 : 0)).current
+  useEffect(() => {
+    if (!active) return
+    opacity.setValue(0)
+    Animated.timing(opacity, { toValue: 1, duration: 180, easing: Easing.out(Easing.quad), useNativeDriver: Platform.OS !== 'web' }).start()
+  }, [active, opacity])
+  return <Animated.View style={{ flex: 1, display: active ? 'flex' : 'none', opacity }}>{children}</Animated.View>
+}
+
 function Tabs() {
   const { tab, set: setTab } = useTab()
   const wide = useWide()
+  const screens: Record<TabKey, React.ReactNode> = { subs: <HomeTab />, calendar: <CalendarTab />, settings: <SettingsTab /> }
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <View style={{ flex: 1, display: tab === 'subs' ? 'flex' : 'none' }}>
-        <Home />
-      </View>
-      <View style={{ flex: 1, display: tab === 'calendar' ? 'flex' : 'none' }}>
-        <Calendar />
-      </View>
-      <View style={{ flex: 1, display: tab === 'settings' ? 'flex' : 'none' }}>
-        <Settings />
-      </View>
+      {TAB_KEYS.map((k) => (
+        <TabPane key={k} active={tab === k}>
+          {screens[k]}
+        </TabPane>
+      ))}
       {!wide && <TabBar tab={tab} onChange={setTab} />}
     </View>
   )
@@ -112,10 +126,25 @@ function Shell({ children }: { children: React.ReactNode }) {
   )
 }
 
+/**
+ * Keeps reminders scheduled. Its own component, so edits to subscriptions re-render only this,
+ * not the whole app.
+ */
+function Reminders() {
+  const subs = useStore((s) => s.subs)
+  const notifications = useStore((s) => s.settings.notifications)
+  const notifyTime = useStore((s) => s.settings.notifyTime)
+  useEffect(() => {
+    syncReminders(subs, useStore.getState().settings)
+  }, [subs, notifications, notifyTime])
+  return null
+}
+
 export default function App() {
   const loaded = useStore((s) => s.loaded)
-  const subs = useStore((s) => s.subs)
-  const settings = useStore((s) => s.settings)
+  const themeId = useStore((s) => s.settings.theme)
+  const checkUpdates = useStore((s) => s.settings.checkUpdates)
+  const settings = { theme: themeId, checkUpdates }
   const wide = useWide()
   // Navigation state, kept so changing the theme (which re-creates the screens) stays where you are.
   const navState = useRef<NavigationState | undefined>(undefined)
@@ -134,10 +163,6 @@ export default function App() {
     void refreshSvgl()
     startUpdater()
   }, [])
-
-  useEffect(() => {
-    if (loaded) syncReminders(subs, settings)
-  }, [loaded, subs, settings])
 
   useEffect(() => {
     if (!loaded) return
@@ -192,6 +217,7 @@ export default function App() {
         </Shell>
       )}
       {loaded && <UpdatePrompt />}
+      {loaded && <Reminders />}
       <OverlayHost />
     </SafeAreaProvider>
   )

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
-import { useState, type ReactNode } from 'react'
-import { Modal, Platform, Pressable, ScrollView, Text, View } from 'react-native'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Animated, Easing, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { create } from 'zustand'
 import { addMonths, MONTH_NAMES, today } from '../lib/dates'
@@ -9,7 +9,7 @@ import { colors } from './theme'
 // App-wide pop-ups opened from anywhere: a menu of choices (also used to confirm), and a date picker.
 
 /** iOS can't present a new pop-up while the last one is still animating away. */
-const afterClose = (fn: () => void): void => void (Platform.OS === 'ios' ? setTimeout(fn, 400) : fn())
+const afterClose = (fn: () => void): void => void (Platform.OS === 'ios' ? setTimeout(fn, 320) : fn())
 
 export interface MenuOption {
   label: string
@@ -37,25 +37,60 @@ export function confirm(title: string, message: string, action: string, onConfir
   showMenu(title, [{ label: action, destructive: true, onPress: onConfirm }], message)
 }
 
-/** A card that rises from the bottom over a dimmed screen. */
-export function BottomCard({ visible, onClose, children }: { visible: boolean; onClose: () => void; children: ReactNode }) {
+const NATIVE = Platform.OS !== 'web'
+
+/**
+ * A modal whose content slides up from the bottom while the screen behind dims, and slides back
+ * down when closed (it stays mounted until that finishes). Runs on the native thread.
+ */
+export function Sheet({ visible, onClose, children, maxWidth = 480, dismissable = true }: { visible: boolean; onClose: () => void; children: ReactNode; maxWidth?: number; dismissable?: boolean }) {
   const insets = useSafeAreaInsets()
+  const [mounted, setMounted] = useState(visible)
+  const progress = useRef(new Animated.Value(0)).current
+  useEffect(() => {
+    if (visible) {
+      setMounted(true)
+      Animated.spring(progress, { toValue: 1, useNativeDriver: NATIVE, damping: 22, stiffness: 240, mass: 0.9 }).start()
+    } else if (mounted) {
+      Animated.timing(progress, { toValue: 0, duration: 190, easing: Easing.in(Easing.cubic), useNativeDriver: NATIVE }).start(({ finished }) => finished && setMounted(false))
+    }
+  }, [visible])
+  if (!mounted) return null
+  const translateY = progress.interpolate({ inputRange: [0, 1], outputRange: [420, 0] })
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable onPress={onClose} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end', alignItems: 'center' }}>
-        <Pressable onPress={() => {}} style={{ width: '100%', maxWidth: 480, padding: 10, paddingBottom: insets.bottom + 10 }}>
-          {children}
-        </Pressable>
-      </Pressable>
+    <Modal visible transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
+      <Animated.View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.55)', opacity: progress }}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={dismissable ? onClose : undefined} />
+      </Animated.View>
+      <View pointerEvents="box-none" style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
+        <Animated.View style={{ width: '100%', maxWidth, padding: 8, paddingBottom: insets.bottom + 8, maxHeight: '100%', transform: [{ translateY }] }}>{children}</Animated.View>
+      </View>
     </Modal>
   )
 }
 
+/** A card that rises from the bottom over a dimmed screen. */
+export function BottomCard({ visible, onClose, children }: { visible: boolean; onClose: () => void; children: ReactNode }) {
+  return (
+    <Sheet visible={visible} onClose={onClose}>
+      <View style={{ paddingHorizontal: 2 }}>{children}</View>
+    </Sheet>
+  )
+}
+
+/** The last non-null value, so a pop-up keeps its content while it animates away. */
+function useLast<T>(value: T | null): T | null {
+  const last = useRef(value)
+  if (value) last.current = value
+  return value ?? last.current
+}
+
 function MenuView() {
-  const menu = useOverlay((s) => s.menu)
+  const open = useOverlay((s) => s.menu)
+  const menu = useLast(open)
   const close = () => useOverlay.setState({ menu: null })
   return (
-    <BottomCard visible={!!menu} onClose={close}>
+    <BottomCard visible={!!open} onClose={close}>
       <View style={{ backgroundColor: colors.cardHi, borderRadius: 22, overflow: 'hidden', borderWidth: 1, borderColor: colors.border }}>
         {(menu?.title || menu?.message) && (
           <View style={{ padding: 14, alignItems: 'center', borderBottomWidth: 1, borderColor: colors.separator }}>
@@ -143,10 +178,11 @@ export function MonthPicker({ value, onPick }: { value: string; onPick: (d: stri
 }
 
 function DateView() {
-  const date = useOverlay((s) => s.date)
+  const open = useOverlay((s) => s.date)
+  const date = useLast(open)
   const close = () => useOverlay.setState({ date: null })
   return (
-    <BottomCard visible={!!date} onClose={close}>
+    <BottomCard visible={!!open} onClose={close}>
       {date && (
         <View style={{ backgroundColor: colors.cardHi, borderRadius: 22, padding: 16, borderWidth: 1, borderColor: colors.border }}>
           {date.title && <Text style={{ color: colors.dim, fontSize: 13, fontWeight: '600', marginBottom: 10 }}>{date.title}</Text>}
@@ -173,9 +209,10 @@ function DateView() {
 }
 
 function CustomView() {
-  const custom = useOverlay((s) => s.custom)
+  const open = useOverlay((s) => s.custom)
+  const custom = useLast(open)
   return (
-    <BottomCard visible={!!custom} onClose={closeSheet}>
+    <BottomCard visible={!!open} onClose={closeSheet}>
       {custom}
     </BottomCard>
   )
