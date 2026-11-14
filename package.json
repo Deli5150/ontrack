@@ -1,7 +1,7 @@
 {
   "name": "ontrack",
   "version": "1.0.0",
-  "description": "OnTrack — a subscription manager for macOS, Windows, Linux, iOS and Android",
+  "description": "OnTrack \u2014 a subscription manager for macOS, Windows, Linux, iOS and Android",
   "main": "index.ts",
   "dependencies": {
     "@expo/metro-runtime": "~58.0.17",
@@ -42,6 +42,7 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
+    "dev": "node scripts/dev.mjs",
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",

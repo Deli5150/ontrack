@@ -19,3 +19,4 @@ desktop/node_modules/
 /build/
 desktop/build/icon.iconset/
 modules/*/android/build/
+.dev-data/

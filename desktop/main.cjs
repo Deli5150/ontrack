@@ -51,7 +51,8 @@ function createWindow() {
     icon: process.platform === 'linux' ? path.join(__dirname, 'build/tray.png') : undefined,
     webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, sandbox: false }
   })
-  win.loadURL('app://ontrack/')
+  // `npm run dev` points the app at the Expo dev server (live reload) instead of the built web/.
+  win.loadURL(process.env.ONTRACK_DEV_URL || 'app://ontrack/')
   win.once('ready-to-show', () => {
     if (!process.argv.includes('--hidden')) win.show()
   })
@@ -76,7 +77,7 @@ function createWindow() {
     return { action: 'deny' }
   })
   win.webContents.on('will-navigate', (e, url) => {
-    if (!url.startsWith('app://')) {
+    if (!url.startsWith('app://') && !(process.env.ONTRACK_DEV_URL && url.startsWith(process.env.ONTRACK_DEV_URL))) {
       e.preventDefault()
       if (/^https?:/.test(url)) void shell.openExternal(url)
     }
