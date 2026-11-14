@@ -4,7 +4,7 @@ import { useDraft } from '../lib/draft'
 import { parseTyped } from '../lib/parse'
 import { useStore } from '../lib/store'
 import { useFlowNav } from '../nav'
-import { Backdrop, Field, Header, Pill } from '../ui/kit'
+import { Field, Header, Pill, Screen } from '../ui/kit'
 import { colors } from '../ui/theme'
 
 export default function TypePaste() {
@@ -19,9 +19,9 @@ export default function TypePaste() {
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Backdrop stars={false} />
-      <View style={{ paddingTop: Platform.OS === 'ios' ? 8 : 0 }}>
+    <Screen>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <View style={{ paddingTop: 6 }}>
         <Header title="Type or paste" left="cancel" right={<Pill label="Continue" onPress={go} disabled={!drafts.length} />} />
       </View>
       <View style={{ flex: 1, padding: 16, width: '100%', maxWidth: 640, alignSelf: 'center' }}>
@@ -31,5 +31,6 @@ export default function TypePaste() {
         </Text>
       </View>
     </KeyboardAvoidingView>
+    </Screen>
   )
 }

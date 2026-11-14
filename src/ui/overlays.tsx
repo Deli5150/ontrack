@@ -131,7 +131,7 @@ export function MonthPicker({ value, onPick }: { value: string; onPick: (d: stri
                   onPress={() => onPick(date)}
                   style={{ flex: 1, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: selected ? colors.accent : 'transparent' }}
                 >
-                  <Text style={{ color: selected ? '#fff' : date === t ? colors.accentHi : colors.text, fontSize: 16, fontWeight: selected || date === t ? '700' : '400' }}>{d}</Text>
+                  <Text style={{ color: selected ? colors.onAccent : date === t ? colors.accentHi : colors.text, fontSize: 16, fontWeight: selected || date === t ? '700' : '400' }}>{d}</Text>
                 </Pressable>
               )}
             </View>

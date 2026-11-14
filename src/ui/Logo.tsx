@@ -24,10 +24,19 @@ interface Props {
   style?: ViewStyle
 }
 
-/** A subscription's round logo: a website's icon, an icon, an emoji, an uploaded image, or its initial. */
+/** A subscription's round logo: an official SVGL logo, a website's icon, an icon, an emoji, an uploaded image, or its initial. */
 export function Logo({ logo, name, color, size = 40, style }: Props) {
   const [failed, setFailed] = useState<string | null>(null)
   const base: ViewStyle = { width: size, height: size, borderRadius: size / 2, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: color }
+  if (logo?.kind === 'svg' && failed !== logo.light) {
+    // Vector logos sit on a white disc with room around them, in their light-background version
+    // (every SVGL logo has one that reads on white; not all of them read on a dark disc).
+    return (
+      <View style={[base, { backgroundColor: '#ffffff' }, style]}>
+        <Image source={{ uri: logo.light }} style={{ width: size * 0.62, height: size * 0.62 }} contentFit="contain" onError={() => setFailed(logo.light)} transition={120} />
+      </View>
+    )
+  }
   const src = logo?.kind === 'domain' ? logoUrl(logo.domain, size > 48 ? 256 : 128) : logo?.kind === 'image' ? logo.uri : null
   if (src && failed !== src) {
     return (

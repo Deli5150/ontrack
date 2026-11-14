@@ -1,3 +1,4 @@
+import { brandLogo } from '../lib/svgl'
 import { Ionicons } from '@expo/vector-icons'
 import { useMemo, useState } from 'react'
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native'
@@ -9,7 +10,7 @@ import { importFromFile, importFromPhotos, ImportError } from '../lib/importers'
 import type { Draft } from '../lib/parse'
 import { useStore } from '../lib/store'
 import { useFlowNav } from '../nav'
-import { Backdrop, CircleButton, Column, SearchField, type IconName } from '../ui/kit'
+import { CircleButton, Column, Screen, SearchField, type IconName } from '../ui/kit'
 import { Logo } from '../ui/Logo'
 import { showMenu } from '../ui/overlays'
 import { colors } from '../ui/theme'
@@ -31,7 +32,7 @@ function Option({ icon, title, sub, onPress, busy }: { icon: IconName; title: st
 function ServiceRow({ svc, onPress }: { svc: Service; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, opacity: pressed ? 0.6 : 1, borderBottomWidth: 1, borderColor: colors.separator })}>
-      <Logo logo={{ kind: 'domain', domain: svc.domain }} name={svc.name} color={svc.color} size={32} />
+      <Logo logo={brandLogo(svc.name, svc.domain)} name={svc.name} color={svc.color} size={32} />
       <Text style={{ color: colors.text, fontSize: 17, marginLeft: 14, flex: 1 }}>{svc.name}</Text>
     </Pressable>
   )
@@ -54,7 +55,7 @@ export default function AddCatalog() {
     startNew({
       name: svc.name,
       price: svc.price,
-      logo: { kind: 'domain', domain: svc.domain },
+      logo: brandLogo(svc.name, svc.domain),
       color: svc.color,
       categoryId: categoryIdFor(svc.category),
       cycle: svc.yearly ? { every: 1, unit: 'year' } : { every: 1, unit: 'month' },
@@ -83,9 +84,9 @@ export default function AddCatalog() {
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Backdrop stars={false} />
-      <Column style={{ flexDirection: 'row', alignItems: 'center', height: 60, marginTop: Platform.OS === 'ios' ? 6 : insets.top }}>
+    <Screen>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <Column style={{ flexDirection: 'row', alignItems: 'center', height: 60, marginTop: 4 }}>
         <View style={{ flex: 1 }} />
         <Text style={{ color: colors.text, fontSize: 17, fontWeight: '600' }}>Add Subscription</Text>
         <View style={{ flex: 1, alignItems: 'flex-end' }}>
@@ -125,5 +126,6 @@ export default function AddCatalog() {
         </Column>
       </View>
     </KeyboardAvoidingView>
+    </Screen>
   )
 }

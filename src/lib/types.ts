@@ -7,6 +7,8 @@ export interface Cycle {
 }
 
 export type Logo =
+  /** An official logo from SVGL: files for light and for dark backgrounds. */
+  | { kind: 'svg'; light: string; dark: string }
   | { kind: 'domain'; domain: string }
   | { kind: 'icon'; name: string; color: string }
   | { kind: 'emoji'; emoji: string; color: string }
@@ -24,7 +26,7 @@ export interface Subscription {
   id: string
   name: string
   logo: Logo | null
-  /** Background behind the logo, and the subscription's dot in the orbit. */
+  /** Background behind the logo, when there's no logo image. */
   color: string
   price: number
   currency: string
@@ -80,7 +82,15 @@ export interface Settings {
   defaultNotify: number | null
   checkUpdates: boolean
   lastSeenVersion: string
+  /** A key of THEMES (src/ui/theme.ts). */
+  theme: string
+  wallpaper: WallpaperKind
+  /** How much a photo wallpaper is darkened, 0–1. */
+  wallpaperDim: number
 }
+
+/** The backdrop behind every screen: a built-in design (tinted by the theme) or your own photo. */
+export type WallpaperKind = 'glow' | 'aurora' | 'horizon' | 'dots' | 'plain' | 'photo'
 
 export interface Rates {
   /** Units of each currency per 1 USD. */

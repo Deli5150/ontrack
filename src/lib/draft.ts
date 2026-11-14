@@ -1,3 +1,4 @@
+import { brandLogo } from './svgl'
 import { create } from 'zustand'
 import { findService } from '../data/catalog'
 import { categoryIdFor } from './defaults'
@@ -51,7 +52,7 @@ export function fromParsed(d: Draft): Partial<SubDraft> {
     currency: d.currency,
     cycle: d.cycle,
     startDate: d.date ?? useDraft.getState().sub.startDate,
-    logo: svc ? { kind: 'domain', domain: svc.domain } : null,
+    logo: svc ? brandLogo(svc.name, svc.domain) : brandLogo(d.name),
     color: svc?.color ?? '#3b3650',
     categoryId: svc ? categoryIdFor(svc.category) : d.categoryId,
     url: svc?.domain ?? ''

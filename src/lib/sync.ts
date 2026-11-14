@@ -9,8 +9,8 @@ import type { AppData, Settings } from './types'
 
 export const SYNC_FILE = 'ontrack-sync.json'
 
-/** Settings that follow you between devices (the rest, like the chosen list or sort, are per device). */
-export const SYNCED_SETTINGS = ['currency', 'notifications', 'notifyTime', 'defaultNotify'] as const satisfies ReadonlyArray<keyof Settings>
+/** Settings that follow you between devices (the rest, like the chosen list, sort or wallpaper, are per device). */
+export const SYNCED_SETTINGS = ['currency', 'notifications', 'notifyTime', 'defaultNotify', 'theme'] as const satisfies ReadonlyArray<keyof Settings>
 
 const COLLECTIONS = ['subs', 'lists', 'categories', 'paymentMethods'] as const
 type Collection = (typeof COLLECTIONS)[number]

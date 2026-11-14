@@ -1,6 +1,6 @@
 # OnTrack
 
-Subscription manager (modelled on the iOS app "Orbit") for macOS, Windows, Linux, iOS and Android.
+Subscription manager (inspired by the iOS app "Orbit", but with its own look) for macOS, Windows, Linux, iOS and Android.
 See README.md for features, layout and build commands.
 
 ## Architecture decisions
@@ -16,6 +16,13 @@ See README.md for features, layout and build commands.
   changes in `sync.at` / `sync.removed`; `applySynced` applies merges without re-stamping.
 - Updater: GitHub Releases of Deli5150/ontrack; asset names must match the patterns in
   `desktop/updater.cjs` and `src/lib/updater.ts`.
+- Themes: `colors` in `src/ui/theme.ts` is one mutable object; App.tsx calls applyTheme and re-keys the
+  tree on theme change (navigation state is kept). Use `colors.*`, never hard-coded accents; text on
+  `colors.accent` uses `colors.onAccent`.
+- Layout: `useWide()` (web, ≥860px) = desktop layout (Sidebar, two-pane Home/Calendar, add/edit as a
+  dialog). Every screen goes in `<Screen>` (native SafeAreaView top edge, so sheets aren't padded twice).
+- Logos: SVGL via jsDelivr (`src/lib/svgl.ts`; the api.svgl.app API is behind a bot check). Bundled
+  index `src/data/svgl.json` (refresh: `npx tsx scripts/svgl.mjs`).
 - `ios/` and `android/` are generated (`expo prebuild`); configure native things in `app.config.ts` and `plugins/`.
 
 ## Before finishing a change

@@ -5,9 +5,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { IconName } from './kit'
 import { colors } from './theme'
 
-export type TabKey = 'subs' | 'calendar' | 'settings'
+import type { TabKey } from '../lib/layout'
+export type { TabKey }
 
-const TABS: Array<{ key: TabKey; label: string; icon: IconName }> = [
+export const TABS: Array<{ key: TabKey; label: string; icon: IconName }> = [
   { key: 'subs', label: 'Subscriptions', icon: 'contrast' },
   { key: 'calendar', label: 'Calendar', icon: 'calendar' },
   { key: 'settings', label: 'Settings', icon: 'settings-sharp' }

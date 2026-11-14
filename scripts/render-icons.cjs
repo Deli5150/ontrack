@@ -9,11 +9,8 @@ const root = path.join(__dirname, '..')
 const svg = fs.readFileSync(path.join(root, 'assets/src/icon.svg'), 'utf8')
 
 /** svg variants: full icon, art only (transparent), art in white (monochrome). */
-const variants = {
-  full: svg,
-  art: svg.replace(/<g id="bgl">[\s\S]*?<\/g><\/g>/, ''),
-  mono: svg.replace(/<g id="bgl">[\s\S]*?<\/g><\/g>/, '').replace(/url\(#\w+\)/g, '#ffffff').replace(/stroke="#d6c8ff"/, 'stroke="#ffffff"')
-}
+const art = svg.replace(/<!--bg-->[\s\S]*?<!--\/bg-->/, '')
+const variants = { full: svg, art, mono: art }
 
 async function render(win, svgText, size, file, scale = 1) {
   const html = `<html><body style="margin:0;background:transparent"><div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center"><img style="width:${size * scale}px;height:${size * scale}px" src="data:image/svg+xml;base64,${Buffer.from(svgText).toString('base64')}"></div></body></html>`
@@ -34,9 +31,9 @@ app.whenReady().then(async () => {
   await render(win, variants.art, 1024, a('assets/splash-icon.png'), 0.8)
   await render(win, variants.full, 48, a('assets/favicon.png'))
   await render(win, variants.full, 1024, a('desktop/build/icon.png'))
-  await render(win, variants.art, 64, a('desktop/build/tray.png'))
+  await render(win, variants.art, 64, a('desktop/build/tray.png'), 0.9)
   // macOS .icns, with a rounded-square mask like other Mac apps.
-  const rounded = svg.replace('<rect width="1024" height="1024" rx="0"', '<rect x="100" y="100" width="824" height="824" rx="185"').replace('<g id="art">', '<g id="art" transform="translate(100 100) scale(0.8047)">')
+  const rounded = svg.replace('<rect width="1024" height="1024"', '<rect x="100" y="100" width="824" height="824" rx="185"').replace('<g id="art"', '<g transform="translate(100 100) scale(0.8047)"><g id="art"').replace('</g>\n</svg>', '</g></g>\n</svg>')
   const set = a('desktop/build/icon.iconset')
   fs.rmSync(set, { recursive: true, force: true })
   for (const s of [16, 32, 128, 256, 512]) {

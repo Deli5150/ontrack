@@ -1,3 +1,4 @@
+import { brandLogo } from '../lib/svgl'
 import { Ionicons } from '@expo/vector-icons'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { useState } from 'react'
@@ -46,7 +47,7 @@ export default function Review({ navigation, route }: NativeStackScreenProps<Flo
                 navigation.navigate('Edit')
               }}
             >
-              <Logo logo={svc ? { kind: 'domain', domain: svc.domain } : null} name={d.name} color={svc?.color ?? '#3b3650'} size={40} />
+              <Logo logo={svc ? brandLogo(svc.name, svc.domain) : brandLogo(d.name)} name={d.name} color={svc?.color ?? '#3b3650'} size={40} />
               <View style={{ flex: 1, marginLeft: 12 }}>
                 <Text style={{ color: colors.text, fontSize: 16, fontWeight: '600' }} numberOfLines={1}>
                   {d.name}

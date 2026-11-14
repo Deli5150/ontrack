@@ -1,25 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-  <defs>
-    <radialGradient id="bg" cx="50%" cy="38%" r="75%"><stop offset="0" stop-color="#2a1856"/><stop offset="0.6" stop-color="#120b26"/><stop offset="1" stop-color="#07060c"/></radialGradient>
-    <radialGradient id="glow" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#ff7a45" stop-opacity="0.55"/><stop offset="0.55" stop-color="#c03f86" stop-opacity="0.18"/><stop offset="1" stop-color="#6d3bd1" stop-opacity="0"/></radialGradient>
-    <radialGradient id="planet" cx="40%" cy="33%" r="72%"><stop offset="0" stop-color="#ffc46b"/><stop offset="0.45" stop-color="#ff8a3d"/><stop offset="0.8" stop-color="#f04a6f"/><stop offset="1" stop-color="#d4317a"/></radialGradient>
-    <radialGradient id="swirl" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#ffe0a3" stop-opacity="0.6"/><stop offset="1" stop-color="#ffe0a3" stop-opacity="0"/></radialGradient>
-    <radialGradient id="pink" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#ff3d8b" stop-opacity="0.75"/><stop offset="1" stop-color="#ff3d8b" stop-opacity="0"/></radialGradient>
-    <radialGradient id="moon" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#f6f2ff"/><stop offset="0.6" stop-color="#d4c8ff"/><stop offset="1" stop-color="#a996f0"/></radialGradient>
-  </defs>
-  <g id="bgl"><rect width="1024" height="1024" rx="0" fill="url(#bg)"/>
-  <g fill="#fff"><circle cx="170" cy="180" r="4" opacity=".6"/><circle cx="830" cy="150" r="3" opacity=".5"/><circle cx="880" cy="760" r="4" opacity=".45"/><circle cx="140" cy="820" r="3" opacity=".5"/><circle cx="300" cy="90" r="2.5" opacity=".4"/><circle cx="760" cy="900" r="2.5" opacity=".4"/></g></g>
-  <g id="art">
-  <circle cx="512" cy="512" r="380" fill="url(#glow)"/>
-  <circle cx="512" cy="512" r="330" fill="none" stroke="#d6c8ff" stroke-opacity="0.55" stroke-width="9"/>
-  <circle cx="512" cy="512" r="190" fill="url(#planet)"/>
-  <ellipse cx="465" cy="480" rx="115" ry="52" fill="url(#swirl)" transform="rotate(-18 512 512)"/>
-  <ellipse cx="550" cy="600" rx="140" ry="60" fill="url(#pink)" transform="rotate(-12 512 512)"/>
-  <circle cx="512" cy="182" r="44" fill="url(#moon)"/>
-  <circle cx="798" cy="677" r="34" fill="url(#moon)"/>
-  <circle cx="226" cy="677" r="26" fill="url(#moon)"/>
-  <circle cx="790" cy="340" r="18" fill="url(#moon)"/>
-  <circle cx="234" cy="340" r="22" fill="url(#moon)"/>
-  <circle cx="512" cy="842" r="20" fill="url(#moon)"/>
+  <!--bg--><rect width="1024" height="1024" fill="#1e1e21"/><!--/bg-->
+  <g id="art" fill="none" stroke="#ffffff" stroke-width="96" stroke-linecap="butt">
+    <path d="M 539.4 251.4 A 262 262 0 0 1 521.1 773.8" />
+    <path d="M 466.5 770.0 A 262 262 0 0 1 252.5 475.5" />
+    <path d="M 265.8 422.4 A 262 262 0 0 1 484.6 251.4" />
   </g>
 </svg>

@@ -5,11 +5,13 @@
 
 ## Features
 
-- **The orbit**: every active subscription is a moon around your planet, sized by what it costs, with your total per month
+- **Spending ring**: every active subscription is a slice of a ring sized by what it costs, with your total per month in the middle (tap a slice to see it)
 - **Calendar** of every payment, with each month's total and what's still to come
 - **Add in seconds**: 120+ popular services, *type or paste* ("Netflix 15.99 monthly, Spotify $11.99/mo on the 3rd"), or import screenshots and bank statements (CSV everywhere, PDF on desktop). Text is read on your device.
 - **Everything a subscription has**: price and currency, payment date, cycle (every N days/weeks/months/years) or one-time, duration, free trials, lists (Personal, Business…), categories, payment methods, URL and notes
-- **Logos** for any brand or website, or an icon, an emoji or your own picture
+- **Official brand logos** from [SVGL](https://svgl.app), or any website's icon, an icon, an emoji or your own picture
+- **Themes and wallpapers**: 8 colour themes, built-in wallpapers or your own photo
+- **Made for each screen**: a sidebar and side-by-side panes on desktop, a tab bar on phones
 - **Reminders** before payments (same day to 2 weeks before)
 - **Billing and price history**
 - **30+ currencies** with daily exchange rates
@@ -40,7 +42,7 @@ One React Native (Expo SDK 58) codebase:
 App.tsx              navigation and startup
 src/lib/             data model, store, date math, parsers, importers, reminders, sync, updater
 src/screens/         Subscriptions, Calendar, Settings, the add/edit flow
-src/ui/              theme, shared components, the orbit, pop-ups
+src/ui/              themes, shared components, the spending ring, sidebar, pop-ups
 desktop/             Electron: main.cjs, preload.cjs, updater.cjs, google.cjs
 modules/ontrack-updater   Android: opens the system installer on a downloaded APK
 scripts/             desktop build, iOS build, release, icon rendering
@@ -93,7 +95,7 @@ Each device merges with the file in Drive: every subscription, list, category, p
 
 ## Privacy
 
-Your data stays on your devices (and in your own Google Drive if you turn on Sync). OnTrack fetches brand logos (Google's favicon service), exchange rates (open.er-api.com) and update information (GitHub). Nothing else leaves your device.
+Your data stays on your devices (and in your own Google Drive if you turn on Sync). OnTrack fetches brand logos (SVGL through jsDelivr, and Google's favicon service), exchange rates (open.er-api.com) and update information (GitHub). Nothing else leaves your device.
 
 ## License
 

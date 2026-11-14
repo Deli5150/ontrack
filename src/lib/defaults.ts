@@ -39,7 +39,10 @@ export const DEFAULT_SETTINGS: Settings = {
   notifyTime: '09:00',
   defaultNotify: 1,
   checkUpdates: true,
-  lastSeenVersion: ''
+  lastSeenVersion: '',
+  theme: 'graphite',
+  wallpaper: 'glow',
+  wallpaperDim: 0.55
 }
 
 export const emptyData = (): AppData => ({

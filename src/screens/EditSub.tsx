@@ -49,7 +49,7 @@ function CycleSheet({ value, onDone }: { value: Cycle; onDone: (c: Cycle) => voi
         ))}
       </View>
       <Pressable onPress={() => onDone(c)} style={{ marginTop: 16, height: 48, borderRadius: 14, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Done</Text>
+        <Text style={{ color: colors.onAccent, fontWeight: '700', fontSize: 16 }}>Done</Text>
       </Pressable>
     </View>
   )
@@ -73,7 +73,7 @@ function CountSheet({ value, onDone }: { value: number; onDone: (n: number) => v
         </Pressable>
       </View>
       <Pressable onPress={() => onDone(n)} style={{ marginTop: 18, height: 48, borderRadius: 14, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Done</Text>
+        <Text style={{ color: colors.onAccent, fontWeight: '700', fontSize: 16 }}>Done</Text>
       </Pressable>
     </View>
   )

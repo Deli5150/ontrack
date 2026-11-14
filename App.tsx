@@ -1,8 +1,8 @@
-import { DarkTheme, NavigationContainer } from '@react-navigation/native'
+import { DarkTheme, NavigationContainer, StackActions, createNavigationContainerRef, type NavigationState } from '@react-navigation/native'
 import { createNativeStackNavigator, type NativeStackScreenProps } from '@react-navigation/native-stack'
 import { StatusBar } from 'expo-status-bar'
-import { useEffect, useState } from 'react'
-import { ActivityIndicator, AppState, Platform, View } from 'react-native'
+import { useEffect, useRef } from 'react'
+import { ActivityIndicator, AppState, Platform, Pressable, View } from 'react-native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { syncReminders } from './src/lib/reminders'
 import { desktop } from './src/lib/storage'
@@ -22,16 +22,22 @@ import Review from './src/screens/Review'
 import Settings from './src/screens/Settings'
 import TypePaste from './src/screens/TypePaste'
 import { OverlayHost } from './src/ui/overlays'
-import { TabBar, type TabKey } from './src/ui/TabBar'
-import { colors } from './src/ui/theme'
+import { TabBar } from './src/ui/TabBar'
+import { applyTheme, colors, THEMES } from './src/ui/theme'
+import { useTab, useWide } from './src/lib/layout'
+import { refreshSvgl } from './src/lib/svgl'
+import { loadWallpaperPhoto } from './src/lib/wallpaper'
+import { Sidebar } from './src/ui/Sidebar'
+import { AppearanceScreen } from './src/screens/Appearance'
 
 const Root = createNativeStackNavigator<RootParams>()
 const Flow = createNativeStackNavigator<FlowParams>()
 
-const theme = { ...DarkTheme, colors: { ...DarkTheme.colors, background: colors.bg, card: colors.bg, primary: colors.accent } }
+const nav = createNavigationContainerRef<RootParams>()
 
 function Tabs() {
-  const [tab, setTab] = useState<TabKey>('subs')
+  const { tab, set: setTab } = useTab()
+  const wide = useWide()
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <View style={{ flex: 1, display: tab === 'subs' ? 'flex' : 'none' }}>
@@ -43,15 +49,16 @@ function Tabs() {
       <View style={{ flex: 1, display: tab === 'settings' ? 'flex' : 'none' }}>
         <Settings />
       </View>
-      <TabBar tab={tab} onChange={setTab} />
+      {!wide && <TabBar tab={tab} onChange={setTab} />}
     </View>
   )
 }
 
 /** Adding or editing a subscription: a stack of its own, shown as a sheet. */
-function FlowStack({ route }: NativeStackScreenProps<RootParams, 'Flow'>) {
+function FlowStack({ route, navigation }: NativeStackScreenProps<RootParams, 'Flow'>) {
   const start = (route.params as { screen?: keyof FlowParams } | undefined)?.screen ?? 'Catalog'
-  return (
+  const wide = useWide()
+  const stack = (
     <Flow.Navigator initialRouteName={start} screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
       <Flow.Screen name="Catalog" component={AddCatalog} />
       <Flow.Screen name="Edit" component={EditSub} />
@@ -67,15 +74,54 @@ function FlowStack({ route }: NativeStackScreenProps<RootParams, 'Flow'>) {
       <Flow.Screen name="PaymentPick" component={PaymentPick} />
     </Flow.Navigator>
   )
+  if (!wide) return stack
+  // Desktop: a dialog over the page.
+  return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+      <Pressable onPress={() => navigation.goBack()} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)' }} />
+      <View style={{ width: '100%', maxWidth: 620, height: '100%', maxHeight: 860, borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: colors.border, backgroundColor: colors.bg }}>{stack}</View>
+    </View>
+  )
+}
+
+/** Desktop: the sidebar beside the screens. */
+function Shell({ children }: { children: React.ReactNode }) {
+  const wide = useWide()
+  if (!wide) return <>{children}</>
+  return (
+    <View style={{ flex: 1, flexDirection: 'row', backgroundColor: colors.bg }}>
+      <Sidebar
+        onTab={(t) => {
+          useTab.getState().set(t)
+          if (nav.isReady() && nav.canGoBack()) nav.dispatch(StackActions.popToTop())
+        }}
+        onAdd={() => nav.isReady() && nav.navigate('Flow', { screen: 'Catalog' })}
+      />
+      <View style={{ flex: 1 }}>{children}</View>
+    </View>
+  )
 }
 
 export default function App() {
   const loaded = useStore((s) => s.loaded)
   const subs = useStore((s) => s.subs)
   const settings = useStore((s) => s.settings)
+  const wide = useWide()
+  // Navigation state, kept so changing the theme (which re-creates the screens) stays where you are.
+  const navState = useRef<NavigationState | undefined>(undefined)
+
+  if (colors.name !== (THEMES[settings.theme] ?? THEMES.graphite).name) applyTheme(settings.theme)
+  const theme = { ...DarkTheme, colors: { ...DarkTheme.colors, background: colors.bg, card: colors.bg, primary: colors.accent } }
+
+  // Desktop: the page behind the app (it shows under macOS's title bar) follows the theme.
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') document.body.style.backgroundColor = colors.bg
+  }, [settings.theme])
 
   useEffect(() => {
     void useStore.getState().hydrate()
+    void loadWallpaperPhoto()
+    void refreshSvgl()
     startUpdater()
   }, [])
 
@@ -106,10 +152,19 @@ export default function App() {
           <ActivityIndicator color={colors.accent} />
         </View>
       ) : (
-        <NavigationContainer theme={theme}>
+        <Shell key={`${settings.theme}-${wide}`}>
+        <NavigationContainer ref={nav} theme={theme} initialState={navState.current} onStateChange={(st) => (navState.current = st)}>
           <Root.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
             <Root.Screen name="Tabs" component={Tabs} />
-            <Root.Screen name="Flow" component={FlowStack} options={{ presentation: Platform.OS === 'ios' ? 'modal' : 'card', animation: Platform.OS === 'android' ? 'slide_from_bottom' : undefined }} />
+            <Root.Screen
+              name="Flow"
+              component={FlowStack}
+              options={
+                wide
+                  ? { presentation: 'transparentModal', contentStyle: { backgroundColor: 'transparent' } }
+                  : { presentation: Platform.OS === 'ios' ? 'modal' : 'card', animation: Platform.OS === 'android' ? 'slide_from_bottom' : undefined }
+              }
+            />
             <Root.Screen name="Lists" component={Lists} />
             <Root.Screen name="Categories" component={Categories} />
             <Root.Screen name="PaymentMethods" component={PaymentMethods} />
@@ -120,8 +175,10 @@ export default function App() {
             <Root.Screen name="Guide" component={Guide} />
             <Root.Screen name="Updates" component={UpdatesScreen} />
             <Root.Screen name="Sync" component={SyncScreen} />
+            <Root.Screen name="Appearance" component={AppearanceScreen} />
           </Root.Navigator>
         </NavigationContainer>
+        </Shell>
       )}
       <OverlayHost />
     </SafeAreaProvider>

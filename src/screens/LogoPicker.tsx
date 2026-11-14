@@ -8,7 +8,8 @@ import { EMOJI, ICONS, LOGO_COLORS } from '../data/icons'
 import { useDraft } from '../lib/draft'
 import type { Logo as LogoT } from '../lib/types'
 import { useFlowNav } from '../nav'
-import { Backdrop, Column, Header, Pill, SearchField, Segmented } from '../ui/kit'
+import { searchSvgl, svglLogo } from '../lib/svgl'
+import { Column, Header, Pill, Screen, SearchField, SectionLabel, Segmented } from '../ui/kit'
 import { Logo, onColor } from '../ui/Logo'
 import { colors } from '../ui/theme'
 
@@ -46,7 +47,13 @@ export default function LogoPicker() {
   }
 
   const q = query.trim().toLowerCase()
-  const brands = useMemo(() => (q ? ALL_SERVICES.filter((s) => s.name.toLowerCase().includes(q) || s.domain.includes(q)).slice(0, 8) : []), [q])
+  const official = useMemo(() => searchSvgl(query), [query])
+  // Website icons: catalog services that match, then the likely websites for what was typed.
+  const sites = useMemo(() => {
+    if (!q) return []
+    const brands = ALL_SERVICES.filter((s) => s.name.toLowerCase().includes(q) || s.domain.includes(q)).slice(0, 4)
+    return [...brands.map((b) => ({ domain: b.domain, label: b.domain, color: b.color })), ...guesses(query).filter((d) => !brands.some((b) => b.domain === d)).map((d) => ({ domain: d, label: d, color: '#ffffff' }))]
+  }, [q, query])
   const icons = useMemo(() => (q ? ICONS.filter(([n, k]) => n.includes(q) || k.includes(q)) : ICONS), [q])
   const emoji = useMemo(() => (q ? EMOJI.filter(([, k]) => k.includes(q)) : EMOJI), [q])
 
@@ -60,9 +67,8 @@ export default function LogoPicker() {
 
   const COLS = 5
   return (
-    <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <Backdrop stars={false} />
-      <View style={{ paddingTop: Platform.OS === 'ios' ? 8 : 0 }}>
+    <Screen>
+      <View style={{ paddingTop: 6 }}>
         <Header title="Add Logo" left="cancel" right={sub.logo ? <Pill label="Remove" onPress={() => choose(null)} /> : undefined} />
       </View>
       <Column style={{ flex: 1 }}>
@@ -81,10 +87,20 @@ export default function LogoPicker() {
         )}
         {tab === 'search' && (
           <ScrollView keyboardShouldPersistTaps="handled">
-            <Text style={{ color: colors.dim, fontSize: 15, marginBottom: 8 }}>Enter a brand or website</Text>
-            {[...brands.map((b) => ({ domain: b.domain, label: b.name, color: b.color })), ...guesses(query).filter((d) => !brands.some((b) => b.domain === d)).map((d) => ({ domain: d, label: d, color: '#ffffff' }))].map((r) => (
-              <Pressable key={r.label + r.domain} onPress={() => choose({ kind: 'domain', domain: r.domain }, r.color)} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', paddingVertical: 9, opacity: pressed ? 0.6 : 1 })}>
-                <Logo logo={{ kind: 'domain', domain: r.domain }} name={r.label} color={r.color} size={36} />
+            {!q && <Text style={{ color: colors.dim, fontSize: 15, marginBottom: 8 }}>Enter a brand or website</Text>}
+            {official.length > 0 && <SectionLabel>Official logos · SVGL</SectionLabel>}
+            {official.map((l) => (
+              <Pressable key={l.title + l.light} onPress={() => choose(svglLogo(l), '#ffffff')} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, opacity: pressed ? 0.6 : 1 })}>
+                <Logo logo={svglLogo(l)} name={l.title} color="#ffffff" size={38} />
+                <Text style={{ color: colors.text, fontSize: 16, marginLeft: 12, flex: 1 }} numberOfLines={1}>
+                  {l.title}
+                </Text>
+              </Pressable>
+            ))}
+            {sites.length > 0 && <SectionLabel style={{ marginTop: 14 }}>Website icons</SectionLabel>}
+            {sites.map((r) => (
+              <Pressable key={r.label + r.domain} onPress={() => choose({ kind: 'domain', domain: r.domain }, r.color)} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, opacity: pressed ? 0.6 : 1 })}>
+                <Logo logo={{ kind: 'domain', domain: r.domain }} name={r.label} color={r.color} size={38} />
                 <Text style={{ color: colors.text, fontSize: 16, marginLeft: 12 }}>{r.label}</Text>
               </Pressable>
             ))}
@@ -131,6 +147,6 @@ export default function LogoPicker() {
           </View>
         )}
       </Column>
-    </View>
+    </Screen>
   )
 }

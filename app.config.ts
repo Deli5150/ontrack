@@ -14,7 +14,7 @@ const config: ExpoConfig = {
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'dark',
-  backgroundColor: '#07060c',
+  backgroundColor: '#0c0c0d',
   ios: {
     bundleIdentifier: 'app.ontrack.subscriptions',
     supportsTablet: true,
@@ -26,7 +26,7 @@ const config: ExpoConfig = {
   android: {
     package: 'app.ontrack.subscriptions',
     versionCode: major * 10000 + minor * 100 + patch,
-    adaptiveIcon: { backgroundColor: '#07060c', foregroundImage: './assets/android-icon-foreground.png', monochromeImage: './assets/android-icon-monochrome.png' },
+    adaptiveIcon: { backgroundColor: '#1e1e21', foregroundImage: './assets/android-icon-foreground.png', monochromeImage: './assets/android-icon-monochrome.png' },
     permissions: ['POST_NOTIFICATIONS', 'SCHEDULE_EXACT_ALARM', 'REQUEST_INSTALL_PACKAGES'],
     predictiveBackGestureEnabled: false
   },

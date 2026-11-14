@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons'
+import { Image } from 'expo-image'
 import * as Linking from 'expo-linking'
 import { Pressable, Share, Text, View } from 'react-native'
 import { currencyOf } from '../lib/currency'
@@ -8,7 +9,7 @@ import { useStore } from '../lib/store'
 import { useUpdate } from '../lib/updater'
 import { useRootNav } from '../nav'
 import { Group, Page, Row } from '../ui/kit'
-import { colors } from '../ui/theme'
+import { colors, THEMES } from '../ui/theme'
 import { VERSION } from '../version'
 
 export const openUrl = (url: string): void => {
@@ -33,6 +34,7 @@ export default function Settings() {
         />
       </Group>
       <Group>
+        <Row icon="color-palette-outline" label="Appearance" value={THEMES[settings.theme]?.name} onPress={() => nav.navigate('Appearance')} />
         <Row icon="globe-outline" label="Preferred currency" value={`${settings.currency} ${currencyOf(settings.currency).symbol}`} accessory="updown" onPress={() => nav.navigate('Currency')} />
         <Row icon="list" label="Lists" onPress={() => nav.navigate('Lists')} />
         <Row icon="pricetag-outline" label="Categories" onPress={() => nav.navigate('Categories')} />
@@ -56,7 +58,7 @@ export default function Settings() {
       </Group>
       <Pressable onPress={() => openUrl(REPO_URL)} style={{ alignItems: 'center', marginTop: 16 }}>
         <Text style={{ color: colors.accentHi, fontSize: 17, fontWeight: '700' }}>OnTrack {VERSION}</Text>
-        <View style={{ width: 54, height: 54, borderRadius: 27, marginTop: 10, backgroundColor: '#ff8a3d', borderWidth: 3, borderColor: 'rgba(214,200,255,0.5)' }} />
+        <Image source={require('../../assets/icon.png')} style={{ width: 54, height: 54, borderRadius: 13, marginTop: 10 }} />
       </Pressable>
     </Page>
   )

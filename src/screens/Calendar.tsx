@@ -7,8 +7,9 @@ import { addMonths, daysInMonth, formatDate, MONTH_NAMES, paymentsBetween, price
 import { startEdit } from '../lib/draft'
 import { subsInList, useStore } from '../lib/store'
 import type { Subscription } from '../lib/types'
+import { useWide } from '../lib/layout'
 import { useRootNav } from '../nav'
-import { Backdrop, Column, Pill } from '../ui/kit'
+import { Column, Pill, Screen } from '../ui/kit'
 import { Logo } from '../ui/Logo'
 import { closeSheet, showSheet } from '../ui/overlays'
 import { colors } from '../ui/theme'
@@ -86,67 +87,124 @@ export default function Calendar() {
     )
   }
 
+  const wide = useWide()
+  const cellH = wide ? 96 : 74
   const cells = [...Array.from({ length: lead }, () => 0), ...Array.from({ length: days }, (_, i) => i + 1)]
-  return (
-    <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <Backdrop />
-      <ScrollView contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 110 }}>
-        <Column>
-          <View style={{ height: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
-            <Pressable onPress={() => go(-1)} hitSlop={10} style={arrow} accessibilityLabel="Previous month">
-              <Ionicons name="chevron-back" size={18} color={colors.text} />
-            </Pressable>
-            <Pressable onPress={() => go(1)} hitSlop={10} style={arrow} accessibilityLabel="Next month">
-              <Ionicons name="chevron-forward" size={18} color={colors.text} />
-            </Pressable>
-            {!isThisMonth && <Pill label="Today" onPress={() => setMonth(t.slice(0, 8) + '01')} />}
-          </View>
-          <View {...pan.panHandlers}>
-            <Text style={{ color: colors.text, fontSize: 34, fontWeight: '700', marginTop: 18 }}>
-              {MONTH_NAMES[m - 1]}
-              {y !== Number(t.slice(0, 4)) ? <Text style={{ color: colors.dim }}> {y}</Text> : null}
-            </Text>
-            <Text style={{ fontSize: 16, marginTop: 4, marginBottom: 18 }}>
-              <Text style={{ color: colors.text, fontWeight: '600' }}>{formatMoney(total, settings.currency)}</Text>
-              <Text style={{ color: colors.dim }}> Total   </Text>
-              <Text style={{ color: colors.text, fontWeight: '600' }}>{formatMoney(upcoming, settings.currency)}</Text>
-              <Text style={{ color: colors.dim }}> Upcoming</Text>
-            </Text>
-            <View style={{ flexDirection: 'row', marginBottom: 8 }}>
-              {WEEKDAYS.map((d) => (
-                <Text key={d} style={{ flex: 1, textAlign: 'center', color: colors.text, fontSize: 15 }}>
-                  {d}
-                </Text>
-              ))}
-            </View>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -2 }}>
-              {cells.map((d, i) => {
-                const date = d ? `${month.slice(0, 8)}${String(d).padStart(2, '0')}` : ''
-                const list = d ? (byDay.get(date) ?? []) : []
-                return (
-                  <View key={i} style={{ width: `${100 / 7}%`, padding: 2 }}>
-                    {d > 0 && (
-                      <Pressable
-                        onPress={() => openDay(date)}
-                        style={({ pressed }) => ({ height: 74, borderRadius: 10, backgroundColor: date === t ? colors.today : pressed ? colors.cardHi : colors.card, alignItems: 'center', paddingTop: 5 })}
-                      >
-                        <Text style={{ color: colors.text, fontSize: 15, fontWeight: date === t ? '700' : '400' }}>{d}</Text>
-                        <View style={{ alignItems: 'center', marginTop: 4, gap: 3 }}>
-                          {list.slice(0, list.length > 2 ? 1 : 2).map((p) => (
-                            <Logo key={p.sub.id} logo={p.sub.logo} name={p.sub.name} color={p.sub.color} size={20} />
-                          ))}
-                          {list.length > 2 && <Text style={{ color: colors.dim, fontSize: 11, fontWeight: '600' }}>+{list.length - 1}</Text>}
-                        </View>
-                      </Pressable>
-                    )}
+
+  const controls = (
+    <View style={{ height: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
+      <Pressable onPress={() => go(-1)} hitSlop={10} style={arrow} accessibilityLabel="Previous month">
+        <Ionicons name="chevron-back" size={18} color={colors.text} />
+      </Pressable>
+      <Pressable onPress={() => go(1)} hitSlop={10} style={arrow} accessibilityLabel="Next month">
+        <Ionicons name="chevron-forward" size={18} color={colors.text} />
+      </Pressable>
+      {!isThisMonth && <Pill label="Today" onPress={() => setMonth(t.slice(0, 8) + '01')} />}
+    </View>
+  )
+
+  const heading = (
+    <>
+      <Text style={{ color: colors.text, fontSize: 34, fontWeight: '700' }}>
+        {MONTH_NAMES[m - 1]}
+        {y !== Number(t.slice(0, 4)) ? <Text style={{ color: colors.dim }}> {y}</Text> : null}
+      </Text>
+      <Text style={{ fontSize: 16, marginTop: 4, marginBottom: 18 }}>
+        <Text style={{ color: colors.text, fontWeight: '600' }}>{formatMoney(total, settings.currency)}</Text>
+        <Text style={{ color: colors.dim }}> Total   </Text>
+        <Text style={{ color: colors.text, fontWeight: '600' }}>{formatMoney(upcoming, settings.currency)}</Text>
+        <Text style={{ color: colors.dim }}> Upcoming</Text>
+      </Text>
+    </>
+  )
+
+  const grid = (
+    <View {...pan.panHandlers}>
+      <View style={{ flexDirection: 'row', marginBottom: 8 }}>
+        {WEEKDAYS.map((d) => (
+          <Text key={d} style={{ flex: 1, textAlign: 'center', color: colors.text, fontSize: 15 }}>
+            {d}
+          </Text>
+        ))}
+      </View>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -2 }}>
+        {cells.map((d, i) => {
+          const date = d ? `${month.slice(0, 8)}${String(d).padStart(2, '0')}` : ''
+          const list = d ? (byDay.get(date) ?? []) : []
+          const max = wide ? 3 : 2
+          return (
+            <View key={i} style={{ width: `${100 / 7}%`, padding: 2 }}>
+              {d > 0 && (
+                <Pressable
+                  onPress={() => openDay(date)}
+                  style={({ pressed }) => ({ height: cellH, borderRadius: 10, backgroundColor: date === t ? colors.today : pressed ? colors.cardHi : colors.card, alignItems: 'center', paddingTop: 5 })}
+                >
+                  <Text style={{ color: colors.text, fontSize: 15, fontWeight: date === t ? '700' : '400' }}>{d}</Text>
+                  <View style={{ alignItems: 'center', marginTop: 4, gap: 3, flexDirection: wide ? 'row' : 'column', flexWrap: 'wrap', justifyContent: 'center', paddingHorizontal: 4 }}>
+                    {list.slice(0, list.length > max ? max - 1 : max).map((p) => (
+                      <Logo key={p.sub.id} logo={p.sub.logo} name={p.sub.name} color={p.sub.color} size={wide ? 24 : 20} />
+                    ))}
+                    {list.length > max && <Text style={{ color: colors.dim, fontSize: 11, fontWeight: '600' }}>+{list.length - max + 1}</Text>}
                   </View>
-                )
-              })}
+                </Pressable>
+              )}
             </View>
+          )
+        })}
+      </View>
+    </View>
+  )
+
+  if (wide) {
+    const payments = [...byDay.entries()].sort(([a], [b]) => (a < b ? -1 : 1)).flatMap(([, list]) => list)
+    return (
+      <Screen>
+        <View style={{ flex: 1, flexDirection: 'row', paddingHorizontal: 32, paddingTop: 26, gap: 28 }}>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 32 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+              <View style={{ flex: 1 }}>{heading}</View>
+              {controls}
+            </View>
+            {grid}
+          </ScrollView>
+          <View style={{ width: 300, paddingBottom: 24 }}>
+            <Text style={{ color: colors.dim, fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 10, marginBottom: 10 }}>{`Payments in ${MONTH_NAMES[m - 1]}`}</Text>
+            <ScrollView style={{ flex: 1 }}>
+              {payments.length === 0 && <Text style={{ color: colors.faint }}>Nothing due this month.</Text>}
+              {payments.map((p) => (
+                <Pressable
+                  key={`${p.sub.id}${p.date}`}
+                  onPress={() => {
+                    startEdit(p.sub)
+                    nav.navigate('Flow', { screen: 'Edit' })
+                  }}
+                  style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', paddingVertical: 9, paddingHorizontal: 10, borderRadius: 12, backgroundColor: pressed ? colors.cardHi : 'transparent', opacity: p.date < t ? 0.5 : 1 })}
+                >
+                  <Text style={{ color: colors.dim, width: 44, fontSize: 13 }}>{formatDate(p.date).split(',')[0]}</Text>
+                  <Logo logo={p.sub.logo} name={p.sub.name} color={p.sub.color} size={28} />
+                  <Text style={{ color: colors.text, fontSize: 15, flex: 1, marginLeft: 10 }} numberOfLines={1}>
+                    {p.sub.name}
+                  </Text>
+                  <Text style={{ color: colors.text, fontSize: 15 }}>{formatMoney(priceOn(p.sub, p.date), p.sub.currency)}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
           </View>
+        </View>
+      </Screen>
+    )
+  }
+
+  return (
+    <Screen>
+      <ScrollView contentContainerStyle={{ paddingTop: 8, paddingBottom: insets.bottom + 110 }}>
+        <Column>
+          {controls}
+          <View style={{ marginTop: 18 }}>{heading}</View>
+          {grid}
         </Column>
       </ScrollView>
-    </View>
+    </Screen>
   )
 }
 

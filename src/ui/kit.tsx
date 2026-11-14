@@ -2,36 +2,72 @@ import { Ionicons } from '@expo/vector-icons'
 import { useNavigation } from '@react-navigation/native'
 import { LinearGradient } from 'expo-linear-gradient'
 import type { ComponentProps, ReactNode } from 'react'
-import { Children, Fragment, isValidElement, useMemo } from 'react'
+import { Children, Fragment, isValidElement } from 'react'
 import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View, type TextInputProps, type TextStyle, type ViewStyle } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import Svg, { Circle } from 'react-native-svg'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Image } from 'expo-image'
+import Svg, { Circle, Defs, Pattern, RadialGradient, Rect, Stop } from 'react-native-svg'
+import { useStore } from '../lib/store'
+import type { WallpaperKind } from '../lib/types'
+import { useWallpaperPhoto } from '../lib/wallpaper'
 import { colors, MAX_WIDTH, radius } from './theme'
 
 export type IconName = ComponentProps<typeof Ionicons>['name']
 
-/** A sky of faint stars, the same every time. */
-export function Stars({ height = 900 }: { height?: number }) {
-  const stars = useMemo(() => {
-    let seed = 7
-    const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647)
-    return Array.from({ length: 90 }, () => ({ x: rand() * 100, y: rand() * height, r: rand() * 1.1 + 0.3, o: rand() * 0.5 + 0.15 }))
-  }, [height])
-  return (
-    <Svg style={StyleSheet.absoluteFill} pointerEvents="none" height={height} width="100%">
-      {stars.map((s, i) => (
-        <Circle key={i} cx={`${s.x}%`} cy={s.y} r={s.r} fill="#fff" opacity={s.o} />
-      ))}
-    </Svg>
-  )
+/** One of the built-in wallpapers (or your photo), drawn in the current theme's colours. */
+export function Wallpaper({ kind, photo, dim }: { kind: WallpaperKind; photo?: string | null; dim: number }) {
+  if (kind === 'photo' && photo) {
+    return (
+      <>
+        <Image source={{ uri: photo }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: `rgba(0,0,0,${dim})` }]} />
+        <LinearGradient colors={['rgba(0,0,0,0)', colors.bg]} locations={[0.55, 1]} style={StyleSheet.absoluteFill} />
+      </>
+    )
+  }
+  if (kind === 'aurora') {
+    return (
+      <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
+        <Defs>
+          <RadialGradient id="wa" cx="15%" cy="8%" r="70%">
+            <Stop offset="0" stopColor={colors.accent} stopOpacity="0.32" />
+            <Stop offset="1" stopColor={colors.accent} stopOpacity="0" />
+          </RadialGradient>
+          <RadialGradient id="wb" cx="95%" cy="35%" r="60%">
+            <Stop offset="0" stopColor={colors.accentHi} stopOpacity="0.16" />
+            <Stop offset="1" stopColor={colors.accentHi} stopOpacity="0" />
+          </RadialGradient>
+        </Defs>
+        <Rect width="100%" height="100%" fill="url(#wa)" />
+        <Rect width="100%" height="100%" fill="url(#wb)" />
+      </Svg>
+    )
+  }
+  if (kind === 'horizon') return <LinearGradient colors={['rgba(0,0,0,0)', colors.bgGlow]} locations={[0.45, 1]} style={StyleSheet.absoluteFill} />
+  if (kind === 'dots') {
+    return (
+      <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
+        <Defs>
+          <Pattern id="wd" width="22" height="22" patternUnits="userSpaceOnUse">
+            <Circle cx="11" cy="11" r="1.1" fill="#ffffff" opacity="0.09" />
+          </Pattern>
+        </Defs>
+        <Rect width="100%" height="100%" fill="url(#wd)" />
+      </Svg>
+    )
+  }
+  if (kind === 'plain') return null
+  return <LinearGradient colors={[colors.bgGlow, 'rgba(0,0,0,0)']} style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 420 }} />
 }
 
-/** The app's backdrop: near-black with a purple glow at the top and stars. */
-export function Backdrop({ stars = true }: { stars?: boolean }) {
+/** The app's backdrop: the theme's background with the chosen wallpaper. */
+export function Backdrop() {
+  const kind = useStore((s) => s.settings.wallpaper)
+  const dim = useStore((s) => s.settings.wallpaperDim)
+  const photo = useWallpaperPhoto((s) => s.uri)
   return (
     <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.bg }]} pointerEvents="none">
-      <LinearGradient colors={[colors.bgGlow, 'rgba(26,16,51,0)']} style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 420 }} />
-      {stars && <Stars />}
+      <Wallpaper kind={kind} photo={photo} dim={dim} />
     </View>
   )
 }
@@ -45,17 +81,32 @@ export function Column({ children, style, pointerEvents }: { children: ReactNode
   )
 }
 
-/** A scrolling page with the backdrop, an optional header and room for the tab bar. */
-export function Page({ children, header, bottomSpace = 40, stars = true }: { children: ReactNode; header?: ReactNode; bottomSpace?: number; stars?: boolean }) {
-  const insets = useSafeAreaInsets()
+/**
+ * A screen: the backdrop full-bleed behind it, and its content kept below the status bar and
+ * camera cutout. The native SafeAreaView measures where the screen really is, so a screen shown
+ * as a sheet (which already starts lower) doesn't get the space twice.
+ */
+export function Screen({ children }: { children: ReactNode }) {
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <Backdrop stars={stars} />
-      {header && <View style={{ paddingTop: insets.top }}>{header}</View>}
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: header ? 8 : insets.top + 8, paddingBottom: insets.bottom + bottomSpace }}>
+      <Backdrop />
+      <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1 }}>
+        {children}
+      </SafeAreaView>
+    </View>
+  )
+}
+
+/** A scrolling page with the backdrop, an optional header and room for the tab bar. */
+export function Page({ children, header, bottomSpace = 40 }: { children: ReactNode; header?: ReactNode; bottomSpace?: number }) {
+  const insets = useSafeAreaInsets()
+  return (
+    <Screen>
+      {header}
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: 8, paddingBottom: insets.bottom + bottomSpace }}>
         <Column>{children}</Column>
       </ScrollView>
-    </View>
+    </Screen>
   )
 }
 
@@ -95,7 +146,7 @@ export function Pill({ label, onPress, disabled, tone = 'plain', style }: { labe
         style
       ]}
     >
-      <Text style={{ color: colors.text, fontWeight: '600', fontSize: 15 }}>{label}</Text>
+      <Text style={{ color: tone === 'accent' ? colors.onAccent : colors.text, fontWeight: '600', fontSize: 15 }}>{label}</Text>
     </Pressable>
   )
 }
@@ -182,7 +233,7 @@ export function Toggle({ value, onChange }: { value: boolean; onChange: (v: bool
       value={value}
       onValueChange={onChange}
       trackColor={{ false: 'rgba(255,255,255,0.18)', true: colors.accent }}
-      thumbColor="#fff"
+      thumbColor={value && colors.onAccent !== '#ffffff' ? colors.onAccent : '#fff'}
       {...(Platform.OS === 'web' ? ({ activeThumbColor: '#fff' } as object) : {})}
     />
   )

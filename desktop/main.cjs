@@ -34,15 +34,15 @@ function serveWeb() {
 // The title bar is hidden on macOS: leave room for the traffic lights and make the top draggable.
 const MAC_CHROME_CSS = `
   #root { margin-top: 28px; height: calc(100% - 28px) !important; }
-  #ontrack-drag { position: fixed; top: 0; left: 0; right: 0; height: 28px; -webkit-app-region: drag; z-index: 0; background: #07060c; }
+  #ontrack-drag { position: fixed; top: 0; left: 0; right: 0; height: 28px; -webkit-app-region: drag; z-index: 0; background: transparent; }
 `
 
 function createWindow() {
   win = new BrowserWindow({
-    width: 560,
-    height: 920,
-    minWidth: 380,
-    minHeight: 560,
+    width: 1240,
+    height: 820,
+    minWidth: 420,
+    minHeight: 600,
     title: 'OnTrack',
     backgroundColor: '#07060c',
     show: false,
@@ -54,6 +54,15 @@ function createWindow() {
   win.loadURL('app://ontrack/')
   win.once('ready-to-show', () => {
     if (!process.argv.includes('--hidden')) win.show()
+  })
+  win.webContents.on('did-finish-load', () => {
+    // Slim scrollbars that sit on any theme.
+    win.webContents.insertCSS(`
+      ::-webkit-scrollbar { width: 10px; height: 10px; background: transparent; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); border-radius: 5px; border: 2px solid transparent; background-clip: padding-box; }
+      ::-webkit-scrollbar-thumb:hover { background-color: rgba(255,255,255,0.28); }
+    `)
   })
   if (process.platform === 'darwin') {
     win.webContents.on('did-finish-load', () => {

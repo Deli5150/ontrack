@@ -1,16 +1,17 @@
 import { Ionicons } from '@expo/vector-icons'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { convert, formatMoney } from '../lib/currency'
-import { cycleShort, isActive, monthlyCost, nextPayment, statusLine } from '../lib/dates'
+import { cycleShort, daysInMonth, isActive, monthlyCost, nextPayment, paymentsBetween, priceOn, statusLine, today } from '../lib/dates'
 import { startEdit } from '../lib/draft'
 import { subsInList, useStore } from '../lib/store'
 import type { SortKey, Subscription } from '../lib/types'
+import { useWide } from '../lib/layout'
 import { useRootNav } from '../nav'
-import { Backdrop, CircleButton, Column, Pill } from '../ui/kit'
+import { CircleButton, Column, Pill, Screen } from '../ui/kit'
 import { Logo } from '../ui/Logo'
-import { Orbit } from '../ui/Orbit'
+import { SpendRing } from '../ui/SpendRing'
 import { showMenu } from '../ui/overlays'
 import { colors } from '../ui/theme'
 
@@ -48,6 +49,7 @@ export default function Home() {
   const nav = useRootNav()
   const insets = useSafeAreaInsets()
   const { width } = useWindowDimensions()
+  const [picked, setPicked] = useState<string | null>(null)
   const { subs, lists, settings, rates, setSettings } = useStore()
 
   const inList = useMemo(() => subsInList(subs, settings.listId), [subs, settings.listId])
@@ -67,8 +69,11 @@ export default function Home() {
     return { active: act, inactive: ina }
   }, [inList, settings.sort, settings.sortAsc, settings.currency, rates])
 
-  const monthly = active.reduce((sum, s) => sum + toPref(s, monthlyCost(s)), 0)
-  const inactiveMonthly = inactive.reduce((sum, s) => sum + toPref(s, monthlyCost(s)), 0)
+    const inactiveMonthly = inactive.reduce((sum, s) => sum + toPref(s, monthlyCost(s)), 0)
+  // Still to pay this month (today included).
+  const t = today()
+  const monthEnd = `${t.slice(0, 8)}${String(daysInMonth(Number(t.slice(0, 4)), Number(t.slice(5, 7)) - 1)).padStart(2, '0')}`
+  const dueThisMonth = active.reduce((sum, s) => sum + paymentsBetween(s, t, monthEnd).reduce((a, d) => a + toPref(s, priceOn(s, d)), 0), 0)
   const listName = settings.listId === 'all' ? 'All lists' : (lists.find((l) => l.id === settings.listId)?.name ?? 'Personal')
 
   const open = (s: Subscription) => {
@@ -94,27 +99,41 @@ export default function Home() {
       { label: settings.sortAsc ? 'Ascending' : 'Descending', sub: 'Tap to reverse', onPress: () => setSettings({ sortAsc: !settings.sortAsc }) }
     ])
 
-  const orbitSize = Math.min(width - 32, 380)
-  return (
-    <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <Backdrop />
-      <ScrollView contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 110 }}>
-        <Column>
-          <Orbit size={orbitSize} moons={active.map((s) => ({ id: s.id, cost: toPref(s, monthlyCost(s) || s.price) }))} />
-          <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginTop: 8, marginBottom: 22 }}>
+  const wide = useWide()
+  const ringSize = wide ? 300 : Math.min(width - 64, 320)
+  const title = (
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 18 }}>
+            <Text style={{ color: colors.text, fontSize: 32, fontWeight: '700', flex: 1 }}>Subscriptions</Text>
+            <CircleButton icon="add" onPress={add} label="Add subscription" size={42} />
+          </View>
+  )
+  const summary = (
+          <>
+          <SpendRing
+            size={ringSize}
+            selected={picked}
+            onSelect={setPicked}
+            money={(n) => formatMoney(n, settings.currency)}
+            items={active.map((s) => ({ id: s.id, name: s.name, logo: s.logo, color: s.color, cost: toPref(s, monthlyCost(s)) }))}
+          />
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginTop: 22, marginBottom: 22 }}>
             <View style={{ flex: 1 }}>
-              <Text style={{ color: colors.text, fontSize: 38, fontWeight: '700' }}>{active.length}</Text>
-              <Pressable onPress={pickList} style={{ flexDirection: 'row', alignItems: 'center' }} hitSlop={8}>
-                <Text style={{ color: colors.dim, fontSize: 16 }}>{listName}</Text>
+              <Text style={{ color: colors.text, fontSize: 24, fontWeight: '700' }}>{`${active.length} active`}</Text>
+              <Pressable onPress={pickList} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }} hitSlop={8}>
+                <Text style={{ color: colors.dim, fontSize: 15 }}>{listName}</Text>
                 <Ionicons name="chevron-expand" size={14} color={colors.dim} style={{ marginLeft: 3 }} />
               </Pressable>
             </View>
             <View style={{ alignItems: 'flex-end' }}>
-              <Text style={{ color: colors.text, fontSize: 30, fontWeight: '700' }}>{formatMoney(monthly, settings.currency)}</Text>
-              <Text style={{ color: colors.dim, fontSize: 16 }}>Total monthly</Text>
+              <Text style={{ color: colors.text, fontSize: 24, fontWeight: '700' }}>{formatMoney(dueThisMonth, settings.currency)}</Text>
+              <Text style={{ color: colors.dim, fontSize: 15, marginTop: 2 }}>Left to pay this month</Text>
             </View>
           </View>
 
+          </>
+  )
+  const list = (
+          <>
           {inList.length === 0 ? (
             <View style={{ alignItems: 'center', marginTop: 20 }}>
               <Text style={{ color: colors.text, fontSize: 18, fontWeight: '600', marginBottom: 6 }}>Nothing tracked yet</Text>
@@ -147,13 +166,34 @@ export default function Home() {
               )}
             </>
           )}
+          </>
+  )
+
+  if (wide) {
+    return (
+      <Screen>
+        <View style={{ flex: 1, paddingHorizontal: 32, paddingTop: 26 }}>
+          {title}
+          <View style={{ flex: 1, flexDirection: 'row', gap: 32 }}>
+            <View style={{ width: 340 }}>{summary}</View>
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 32, maxWidth: 760 }}>
+              {list}
+            </ScrollView>
+          </View>
+        </View>
+      </Screen>
+    )
+  }
+
+  return (
+    <Screen>
+      <ScrollView contentContainerStyle={{ paddingTop: 8, paddingBottom: insets.bottom + 110 }}>
+        <Column>
+          {title}
+          {summary}
+          {list}
         </Column>
       </ScrollView>
-      <View style={{ position: 'absolute', top: insets.top + 8, left: 0, right: 0 }} pointerEvents="box-none">
-        <Column style={{ alignItems: 'flex-end' }} pointerEvents="box-none">
-          <CircleButton icon="add" onPress={add} label="Add subscription" size={42} />
-        </Column>
-      </View>
-    </View>
+    </Screen>
   )
 }
