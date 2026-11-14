@@ -32,6 +32,8 @@ const config: ExpoConfig = {
   },
   web: { favicon: './assets/favicon.png', output: 'single', bundler: 'metro' },
   plugins: [
+    // First, so it runs after expo-notifications has added the push entitlement.
+    './plugins/withoutPushEntitlement',
     ['expo-notifications', { color: '#8b7cf6' }],
     ['expo-image-picker', { photosPermission: 'OnTrack reads receipts and renewal screenshots you pick to find your subscriptions.' }],
     'expo-sharing',
