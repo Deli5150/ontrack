@@ -20,7 +20,9 @@ const config: ExpoConfig = {
     supportsTablet: true,
     infoPlist: {
       NSPhotoLibraryUsageDescription: 'OnTrack reads receipts and renewal screenshots you pick to find your subscriptions, and lets you use a picture as a logo.',
-      ITSAppUsesNonExemptEncryption: false
+      ITSAppUsesNonExemptEncryption: false,
+      // The update chooser checks which sideloading apps are installed (src/ui/UpdatePrompt.tsx).
+      LSApplicationQueriesSchemes: ['altstore', 'sidestore', 'feather', 'flarestore']
     }
   },
   android: {

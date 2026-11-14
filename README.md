@@ -81,13 +81,13 @@ The version lives only in `package.json`. Android release builds are signed with
 
 ### In-app updates
 
-Every install checks this repo's latest release (at launch and every few hours) and offers newer versions in Settings → Updates:
+Every install checks this repo's latest release (at launch and every few hours). A new version brings up an **Update available** sheet (Release Notes, Update, Later for a day, or Skip this version), and Settings → Updates has it too:
 
 - **macOS**: downloads the `-mac.zip`, swaps the app and restarts
 - **Windows**: runs the new installer silently and restarts
 - **Linux**: replaces the AppImage and restarts
 - **Android**: downloads the APK and opens the system installer
-- **iPhone**: downloads the `.ipa` for you to save and sideload (iOS can't install apps itself)
+- **iPhone**: Update opens a chooser: **AltStore**, **SideStore**, **Feather** or **FlareStore** installs the new `.ipa` straight from the release, or **Download IPA** saves it for manual sideloading (iOS can't install apps itself)
 
 ### Sync with Google
 

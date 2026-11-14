@@ -34,7 +34,7 @@ export async function checkForUpdates(quiet = false): Promise<void> {
     if (!res.ok) throw new Error(`GitHub answered ${res.status}`)
     release = newerRelease((await res.json()) as GitHubRelease, VERSION, PATTERN)
     if (!release) return set({ state: 'latest', version: undefined, lastCheck: Date.now() })
-    set({ state: 'available', version: release.version, notes: release.notes, page: release.page, inApp: Boolean(release.asset), lastCheck: Date.now() })
+    set({ state: 'available', version: release.version, notes: release.notes, page: release.page, inApp: Boolean(release.asset), assetUrl: release.asset?.url, lastCheck: Date.now() })
   } catch (e) {
     if (quiet) set({ state: release ? 'available' : 'idle' })
     else set({ state: 'error', error: `Couldn't check for updates: ${(e as Error).message}` })

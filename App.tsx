@@ -22,6 +22,8 @@ import Review from './src/screens/Review'
 import Settings from './src/screens/Settings'
 import TypePaste from './src/screens/TypePaste'
 import { OverlayHost } from './src/ui/overlays'
+import { UpdatePrompt, useUpdatePrompt } from './src/ui/UpdatePrompt'
+import { useUpdate } from './src/lib/updater'
 import { TabBar } from './src/ui/TabBar'
 import { applyTheme, colors, THEMES } from './src/ui/theme'
 import { useTab, useWide } from './src/lib/layout'
@@ -34,6 +36,14 @@ const Root = createNativeStackNavigator<RootParams>()
 const Flow = createNativeStackNavigator<FlowParams>()
 
 const nav = createNavigationContainerRef<RootParams>()
+
+// Development: preview the update sheet without a real release (the desktop screenshot hook calls it).
+if (__DEV__ && typeof globalThis !== 'undefined') {
+  ;(globalThis as { __ontrackPreviewUpdate?: (iphone: boolean) => void }).__ontrackPreviewUpdate = (iphone) => {
+    useUpdatePrompt.setState({ forceChooser: iphone })
+    useUpdate.setState({ state: 'available', version: '1.1.0', notes: '## What’s new\n- A preview of the update sheet', assetUrl: 'https://github.com/Deli5150/ontrack/releases/download/v1.1.0/OnTrack-1.1.0.ipa' })
+  }
+}
 
 function Tabs() {
   const { tab, set: setTab } = useTab()
@@ -181,6 +191,7 @@ export default function App() {
         </NavigationContainer>
         </Shell>
       )}
+      {loaded && <UpdatePrompt />}
       <OverlayHost />
     </SafeAreaProvider>
   )

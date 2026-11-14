@@ -35,6 +35,8 @@ export interface UpdateStatus {
   progress?: number
   error?: string
   lastCheck?: number
+  /** The new version's file for this platform (the .ipa on an iPhone, for the sideloading apps). */
+  assetUrl?: string
 }
 
 const parts = (v: string): number[] =>

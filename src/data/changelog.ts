@@ -13,7 +13,9 @@ export const CHANGELOG: Array<{ version: string; date: string; items: string[] }
       'Add from 120+ popular services, type or paste (“Netflix 15.99 monthly”), or import screenshots and bank statements',
       'Official brand logos from SVGL, or pick an icon, an emoji or your own picture',
       'Reminders before payments, billing and price history, any currency with live exchange rates',
-      'Export and import your data, and in-app updates on every platform'
+      'Export and import your data, and in-app updates on every platform',
+      'iPhone updates through AltStore, SideStore, Feather or FlareStore',
+      'Report a bug or request a feature from Settings'
     ]
   }
 ]

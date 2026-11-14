@@ -87,6 +87,11 @@ export interface Settings {
   wallpaper: WallpaperKind
   /** How much a photo wallpaper is darkened, 0–1. */
   wallpaperDim: number
+  /** An update the person chose to skip (never offered again). */
+  skippedVersion: string
+  /** "Later": not offered again until this time (ms), for this version. */
+  laterVersion: string
+  laterUntil: number
 }
 
 /** The backdrop behind every screen: a built-in design (tinted by the theme) or your own photo. */

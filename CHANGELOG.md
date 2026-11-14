@@ -13,4 +13,5 @@ First release of OnTrack for macOS, Windows, Linux, iPhone and Android.
 - Official brand logos from SVGL, any website's icon, an icon, an emoji or your own picture
 - Reminders before payments, billing and price history, 30+ currencies with daily exchange rates
 - Sync with Google: the same subscriptions on every device, kept in a private folder in your Google Drive
-- Backups (JSON), spreadsheet export (CSV), and in-app updates
+- Backups (JSON), spreadsheet export (CSV), and in-app updates with an Update available sheet; on iPhone, update through AltStore, SideStore, Feather or FlareStore, or download the .ipa
+- Report bugs and request features from Settings

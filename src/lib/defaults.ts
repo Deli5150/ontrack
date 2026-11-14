@@ -42,7 +42,10 @@ export const DEFAULT_SETTINGS: Settings = {
   lastSeenVersion: '',
   theme: 'graphite',
   wallpaper: 'glow',
-  wallpaperDim: 0.55
+  wallpaperDim: 0.55,
+  skippedVersion: '',
+  laterVersion: '',
+  laterUntil: 0
 }
 
 export const emptyData = (): AppData => ({

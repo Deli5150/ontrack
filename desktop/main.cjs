@@ -268,6 +268,11 @@ async function screenshots(dir) {
   for (const step of steps) {
     const [name, ...clicks] = step.split(':')
     for (const text of clicks.filter(Boolean)) {
+      if (text.startsWith('!')) {
+        await win.webContents.executeJavaScript(text.slice(1))
+        await wait(900)
+        continue
+      }
       if (text.startsWith('@')) {
         await win.webContents.executeJavaScript(`(() => { const el = [...document.querySelectorAll('[aria-label=${JSON.stringify(text.slice(1))}]')].pop(); el && el.click() })()`)
         await wait(900)

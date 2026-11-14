@@ -21,6 +21,7 @@ import { confirm, showMenu } from '../ui/overlays'
 import { colors } from '../ui/theme'
 import { VERSION } from '../version'
 import { NOTIFY_OPTIONS, notifyLabel } from './EditSub'
+import { openUpdatePrompt } from '../ui/UpdatePrompt'
 import { openUrl } from './Settings'
 
 export function CurrencyScreen() {
@@ -235,7 +236,9 @@ export function UpdatesScreen() {
         {u.error && u.state !== 'error' && <Text style={{ color: colors.danger, marginTop: 6, textAlign: 'center' }}>{u.error}</Text>}
       </View>
       <Group>
-        {(u.state === 'available' && u.inApp) || u.state === 'ready' ? (
+        {isIos && (u.state === 'available' || u.state === 'ready') ? (
+          <Row icon="cloud-download" iconColor={colors.accentHi} label={`Update to ${u.version}`} sub="AltStore, SideStore, Feather, FlareStore or the .ipa" onPress={() => openUpdatePrompt('choose')} />
+        ) : (u.state === 'available' && u.inApp) || u.state === 'ready' ? (
           u.state === 'ready' ? (
             <Row icon="checkmark-circle" iconColor={colors.success} label={isIos ? 'Save the new app (.ipa)' : 'Install and restart'} accessory="none" onPress={() => void installUpdate()} />
           ) : (
@@ -256,7 +259,7 @@ export function UpdatesScreen() {
           </View>
         </>
       ) : null}
-      {isIos && <Text style={{ color: colors.faint, fontSize: 13, marginTop: 14, lineHeight: 18 }}>An iPhone can’t install apps by itself: the new version is downloaded for you to save, then sideload it the same way as before.</Text>}
+      {isIos && <Text style={{ color: colors.faint, fontSize: 13, marginTop: 14, lineHeight: 18 }}>An iPhone can’t install apps by itself: AltStore, SideStore, Feather or FlareStore installs the new version for you, or download the .ipa and sideload it as before.</Text>}
       <Row label="All releases" accessory="external" onPress={() => openUrl(RELEASES_PAGE)} />
     </Page>
   )
