@@ -1,0 +1,118 @@
+{
+  "name": "ontrack",
+  "productName": "OnTrack",
+  "version": "1.0.0",
+  "description": "Keep your subscriptions on track",
+  "author": "Deli5150",
+  "license": "MIT",
+  "main": "main.cjs",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "dependencies": {
+    "tesseract.js": "^7.0.0",
+    "unpdf": "^2.2.0"
+  },
+  "devDependencies": {
+    "electron": "45.0.0",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "app.ontrack.subscriptions",
+    "productName": "OnTrack",
+    "copyright": "Copyright © 2026 OnTrack",
+    "directories": {
+      "output": "../dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "updater.cjs",
+      "google.cjs",
+      "google.json",
+      "web/**",
+      "build/tray*.png",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "node_modules/tesseract.js/**",
+      "node_modules/tesseract.js-core/**"
+    ],
+    "artifactName": "${productName}-${version}-${arch}.${ext}",
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "category": "public.app-category.finance",
+      "icon": "build/icon.icns",
+      "identity": "-",
+      "hardenedRuntime": false,
+      "artifactName": "${productName}-${version}-mac.${ext}"
+    },
+    "dmg": {
+      "title": "${productName} ${version}",
+      "artifactName": "${productName}-${version}.${ext}"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "OnTrack",
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "category": "Finance",
+      "synopsis": "Keep your subscriptions on track",
+      "description": "Track subscriptions, see what you spend each month, and get reminded before every payment.",
+      "desktop": {
+        "entry": {
+          "StartupWMClass": "OnTrack"
+        }
+      }
+    },
+    "appImage": {
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "publish": null
+  },
+  "allowScripts": {
+    "electron@45.0.0": true
+  }
+}
