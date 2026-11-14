@@ -11,11 +11,12 @@ import { CURRENCIES } from '../lib/currency'
 import { cycleLabel, formatDate, nextPayment } from '../lib/dates'
 import { exportData, normalize, useStore } from '../lib/store'
 import { testNotification } from '../lib/reminders'
-import { RELEASES_PAGE } from '../lib/release'
+import { feedbackUrl, type FeedbackKind } from '../lib/feedback'
+import { RELEASES_PAGE, REPO_URL } from '../lib/release'
 import { desktop } from '../lib/storage'
 import type { AppData } from '../lib/types'
 import { checkForUpdates, downloadUpdate, installUpdate, useUpdate } from '../lib/updater'
-import { Group, Header, Page, Row, SectionLabel, SearchField, Toggle } from '../ui/kit'
+import { Field, Group, Header, Page, Row, SectionLabel, SearchField, Segmented, Toggle } from '../ui/kit'
 import { confirm, showMenu } from '../ui/overlays'
 import { colors } from '../ui/theme'
 import { VERSION } from '../version'
@@ -317,6 +318,45 @@ export function SyncScreen() {
           {!googleAvailable() && <Text style={{ color: colors.faint, fontSize: 13, textAlign: 'center', marginTop: 8 }}>This copy of OnTrack was built without a Google client, so Sync isn’t available.</Text>}
         </>
       )}
+    </Page>
+  )
+}
+
+export function FeedbackScreen() {
+  const [kind, setKind] = useState<FeedbackKind>('bug')
+  const [title, setTitle] = useState('')
+  const [text, setText] = useState('')
+  const ready = title.trim().length > 2 && text.trim().length > 2
+  return (
+    <Page header={<Header title="Feedback" />}>
+      <Segmented<FeedbackKind>
+        value={kind}
+        onChange={setKind}
+        options={[
+          { label: 'Report a bug', value: 'bug' },
+          { label: 'Request a feature', value: 'feature' }
+        ]}
+      />
+      <Text style={{ color: colors.dim, fontSize: 14, marginVertical: 14, lineHeight: 20 }}>
+        {kind === 'bug'
+          ? 'Say what you did, what you expected, and what happened instead. Your OnTrack version and device are added for you.'
+          : 'What should OnTrack do, and why would it help?'}
+      </Text>
+      <Field value={title} onChangeText={setTitle} placeholder={kind === 'bug' ? 'Short summary, e.g. "Calendar skips February"' : 'Short summary, e.g. "Widgets"'} style={{ marginBottom: 12 }} />
+      <Field value={text} onChangeText={setText} placeholder={kind === 'bug' ? 'What happened' : 'The idea'} multiline style={{ marginBottom: 18, minHeight: 160 }} />
+      <Group>
+        <Row
+          label="Continue on GitHub"
+          sub="Opens the filled-in form; submit it there with your GitHub account"
+          icon="logo-github"
+          iconColor={ready ? colors.accentHi : colors.faint}
+          accessory="external"
+          onPress={ready ? () => openUrl(feedbackUrl(kind, title, text, VERSION)) : undefined}
+        />
+      </Group>
+      <Group>
+        <Row label="See open reports and ideas" icon="list" accessory="external" onPress={() => openUrl(`${REPO_URL}/issues`)} />
+      </Group>
     </Page>
   )
 }

@@ -53,7 +53,7 @@ export default function Settings() {
       <Group>
         <Row icon="sparkles-outline" label="What's New" onPress={() => nav.navigate('WhatsNew')} />
         <Row icon="cloud-download-outline" label="Updates" value={updateValue} onPress={() => nav.navigate('Updates')} />
-        <Row icon="bulb-outline" label="Feedback & Roadmap" accessory="external" onPress={() => openUrl(`${REPO_URL}/issues`)} />
+        <Row icon="chatbubble-ellipses-outline" label="Report a bug or request a feature" onPress={() => nav.navigate('Feedback')} />
         <Row icon="logo-github" label="Source code" value="GitHub" accessory="external" onPress={() => openUrl(REPO_URL)} />
       </Group>
       <Pressable onPress={() => openUrl(REPO_URL)} style={{ alignItems: 'center', marginTop: 16 }}>

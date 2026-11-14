@@ -3,6 +3,12 @@
 <h1 align="center">OnTrack</h1>
 <p align="center">Keep your subscriptions on track: see what you spend, when each payment is due, and get reminded before it happens.<br>macOS · Windows · Linux · iPhone · Android</p>
 
+<p align="center">
+  <img src="docs/screenshots/desktop.png" alt="OnTrack on a Mac" width="68%">
+  &nbsp;
+  <img src="docs/screenshots/android.png" alt="OnTrack on Android" width="24%">
+</p>
+
 ## Features
 
 - **Spending ring**: every active subscription is a slice of a ring sized by what it costs, with your total per month in the middle (tap a slice to see it)
@@ -30,6 +36,10 @@ Get the latest version from [Releases](https://github.com/Deli5150/ontrack/relea
 | Linux | `OnTrack-<version>-x86_64.AppImage` (`chmod +x`, then run) |
 | Android | `OnTrack-<version>.apk` (allow installing unknown apps) |
 | iPhone | Build it yourself and sideload (see below). |
+
+## Feedback
+
+Found a bug or have an idea? In the app, open **Settings → Report a bug or request a feature**: it fills in a GitHub issue (with your OnTrack version and device) for you to send. Or open an issue directly: [report a bug](https://github.com/Deli5150/ontrack/issues/new?template=bug.yml) · [request a feature](https://github.com/Deli5150/ontrack/issues/new?template=feature.yml).
 
 ## How it's built
 
@@ -81,7 +91,7 @@ Every install checks this repo's latest release (at launch and every few hours) 
 
 ### Sync with Google
 
-Sync uses OAuth clients from a Google Cloud project with the **Google Drive API** enabled and the `drive.appdata` scope on its consent screen. Put them in `.env` (not committed):
+Official builds use the **OnTrack** Google Cloud project (`ontrack-514720`, published, scopes `drive.appdata` and `userinfo.email`; its home, privacy and terms pages are `docs/`, served at https://deli5150.github.io/ontrack/). To build your own, sync uses OAuth clients from a Google Cloud project with the **Google Drive API** enabled and the `drive.appdata` scope on its consent screen. Put them in `.env` (not committed):
 
 ```sh
 ONTRACK_GOOGLE_CLIENT_ID=...            # "Desktop app" client (desktop)

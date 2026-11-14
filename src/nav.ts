@@ -28,6 +28,7 @@ export type RootParams = {
   Updates: undefined
   Sync: undefined
   Appearance: undefined
+  Feedback: undefined
 }
 
 export const useRootNav = () => useNavigation<NativeStackNavigationProp<RootParams>>()

@@ -16,7 +16,7 @@ import { BillingHistory, PriceHistory } from './src/screens/History'
 import Home from './src/screens/Home'
 import LogoPicker from './src/screens/LogoPicker'
 import { Categories, Lists, PaymentMethods, PaymentPick } from './src/screens/manage'
-import { CurrencyScreen, DataScreen, Guide, NotificationsScreen, SyncScreen, UpdatesScreen, WhatsNew } from './src/screens/more'
+import { CurrencyScreen, DataScreen, FeedbackScreen, Guide, NotificationsScreen, SyncScreen, UpdatesScreen, WhatsNew } from './src/screens/more'
 import { startSync, syncNow } from './src/lib/syncRunner'
 import Review from './src/screens/Review'
 import Settings from './src/screens/Settings'
@@ -176,6 +176,7 @@ export default function App() {
             <Root.Screen name="Updates" component={UpdatesScreen} />
             <Root.Screen name="Sync" component={SyncScreen} />
             <Root.Screen name="Appearance" component={AppearanceScreen} />
+            <Root.Screen name="Feedback" component={FeedbackScreen} />
           </Root.Navigator>
         </NavigationContainer>
         </Shell>
