@@ -605,7 +605,8 @@ const RECEIPT = /\b(sub-?total|tax|vat|gst|order (id|number|no\.?|date)|receipt|
  */
 export function parseDocumentText(raw: string, currency: string): Draft[] {
   // Email addresses and links name services that aren't the subscription ("…@icloud.com").
-  const text = raw.replace(/\S+@\S+\.\w+|\bhttps?:\/\/\S+|\bwww\.\S+/gi, ' ')
+  // OCR reads a lowercase i as "¡" in some fonts ("¡Cloud+").
+  const text = raw.replace(/\S+@\S+\.\w+|\bhttps?:\/\/\S+|\bwww\.\S+/gi, ' ').replace(/¡/g, 'i')
   const charges = chargesFromText(text)
   const keys = charges.map((c) => merchantKey(c.description))
   const repeated = keys.some((k, i) => keys.indexOf(k) !== i)
