@@ -1,7 +1,7 @@
 {
   "name": "ontrack",
-  "version": "1.0.0",
-  "description": "OnTrack \u2014 a subscription manager for macOS, Windows, Linux, iOS and Android",
+  "version": "1.0.1",
+  "description": "OnTrack — a subscription manager for macOS, Windows, Linux, iOS and Android",
   "main": "index.ts",
   "dependencies": {
     "@expo/metro-runtime": "~58.0.17",
@@ -26,7 +26,7 @@
     "expo-sharing": "~58.0.23",
     "expo-status-bar": "~58.0.5",
     "expo-system-ui": "~58.0.7",
-    "expo-text-extractor": "^2.0.0",
+    "fflate": "0.8.3",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-native": "0.88.1",

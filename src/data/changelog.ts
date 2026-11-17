@@ -2,6 +2,16 @@
 
 export const CHANGELOG: Array<{ version: string; date: string; items: string[] }> = [
   {
+    version: '1.0.1',
+    date: '2026-11-16',
+    items: [
+      'Import from photos finds every subscription in a screenshot of a list, not just one',
+      'Import a file reads spreadsheets of subscriptions, bills or debts (CSV or Excel), one per row, with the right categories',
+      'Receipts use the plan’s price, not the tax, total or a date',
+      'Calendar: swipe anywhere on the screen to change month'
+    ]
+  },
+  {
     version: '1.0.0',
     date: '2026-11-14',
     items: [

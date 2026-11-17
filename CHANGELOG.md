@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1] - 2026-11-16
+
+- Import from photos finds every subscription in a screenshot of a list (another subscription app, the App Store's Subscriptions page, a budgeting app), not just one (#1). Text is now read with each line's position on the screen, so a name and its price on the same row stay together
+- Import a file reads spreadsheets that list subscriptions, bills or debts one per row, including Excel (.xlsx) files, instead of merging them into one subscription (#2). It picks the payment column over balances and interest rates, reads frequency, due date (or day of the month), currency and category columns, and puts loans, cards, rent and utilities in the right categories. OnTrack's own spreadsheet export imports back
+- Receipts use the plan's price, not the tax, total or a date
+- Calendar: swipe anywhere on the screen to change month, not just over the dates (#3)
+
 ## [1.0.0] - 2026-11-14
 
 First release of OnTrack for macOS, Windows, Linux, iPhone and Android.

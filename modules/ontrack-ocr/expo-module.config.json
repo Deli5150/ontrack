@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["OntrackOcrModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.ontrackocr.OntrackOcrModule"]
+  }
+}

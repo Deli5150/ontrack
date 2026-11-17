@@ -109,8 +109,8 @@ export default function AddCatalog() {
         ListHeaderComponent={
           results ? undefined : (
             <>
-              <Option icon="images" title="Import from photos" sub="Receipt, bill or renewal screenshots" onPress={() => void runImport('photo')} busy={busy === 'photo'} />
-              <Option icon="document-text" title="Import a file" sub="Bank statement or spreadsheet (PDF or CSV)" onPress={() => void runImport('file')} busy={busy === 'file'} />
+              <Option icon="images" title="Import from photos" sub="Screenshots of receipts, renewals or subscription lists" onPress={() => void runImport('photo')} busy={busy === 'photo'} />
+              <Option icon="document-text" title="Import a file" sub="Spreadsheet or bank statement (CSV, Excel or PDF)" onPress={() => void runImport('file')} busy={busy === 'file'} />
               <Option icon="sparkles" title="Type or paste" sub="Name, price and how often you pay" onPress={() => nav.navigate('TypePaste')} />
               <Option icon="add" title="Custom subscription" onPress={() => custom()} />
             </>

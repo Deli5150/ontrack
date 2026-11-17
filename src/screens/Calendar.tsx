@@ -127,7 +127,7 @@ export default function Calendar() {
 
   const grid = (
     <FadeIn key={month} from={dir.current * 28} duration={200}>
-    <View {...pan.panHandlers}>
+    <View>
       <View style={{ flexDirection: 'row', marginBottom: 8 }}>
         {WEEKDAYS.map((d) => (
           <Text key={d} style={{ flex: 1, textAlign: 'center', color: colors.text, fontSize: 15 }}>
@@ -169,13 +169,15 @@ export default function Calendar() {
     return (
       <Screen>
         <View style={{ flex: 1, flexDirection: 'row', paddingHorizontal: 32, paddingTop: 26, gap: 28 }}>
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 32 }}>
+          <View style={{ flex: 1 }} {...pan.panHandlers}>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 32, flexGrow: 1 }}>
             <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
               <View style={{ flex: 1 }}>{heading}</View>
               {controls}
             </View>
             {grid}
           </ScrollView>
+          </View>
           <View style={{ width: 300, paddingBottom: 24 }}>
             <Text style={{ color: colors.dim, fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 10, marginBottom: 10 }}>{`Payments in ${MONTH_NAMES[m - 1]}`}</Text>
             <ScrollView style={{ flex: 1 }}>
@@ -206,13 +208,17 @@ export default function Calendar() {
 
   return (
     <Screen>
-      <ScrollView contentContainerStyle={{ paddingTop: 8, paddingBottom: insets.bottom + 110 }}>
+      {/* Swiping anywhere on the screen changes the month, not just over the dates; flexGrow makes the
+          empty space below the grid part of the scroll content so it receives touches too. */}
+      <View style={{ flex: 1 }} {...pan.panHandlers}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 8, paddingBottom: insets.bottom + 110, flexGrow: 1 }}>
         <Column>
           {controls}
           <View style={{ marginTop: 18 }}>{heading}</View>
           {grid}
         </Column>
       </ScrollView>
+      </View>
     </Screen>
   )
 }

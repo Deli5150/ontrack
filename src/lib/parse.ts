@@ -1,6 +1,7 @@
 import { ALL_SERVICES, findService, type Service } from '../data/catalog'
-import { categoryIdFor } from './defaults'
+import { categoryIdFor, DEFAULT_CATEGORIES } from './defaults'
 import { addDays, daysBetween, today, ymd } from './dates'
+import type { OcrLine } from '../../modules/ontrack-ocr/src/OntrackOcrModule'
 import type { Cycle } from './types'
 
 // Turning text into subscriptions: what someone typed ("Netflix 15.99 monthly"), text read from a
@@ -199,14 +200,27 @@ const moneyCell = (t: string): number | null => {
   return Number.isFinite(n) ? (negative ? -n : n) : null
 }
 
+/** The cells of a CSV (or tab/semicolon separated) file. */
+export function csvRows(text: string): string[][] {
+  const lines = text.replace(/^\uFEFF/, '').split(/\r?\n/).filter((l) => l.trim())
+  if (!lines.length) return []
+  const sep = [',', ';', '\t'].sort((a, b) => lines[0].split(b).length - lines[0].split(a).length)[0]
+  return lines.map((l) => csvCells(l, sep))
+}
+
 /** Charges (money going out) from a bank or card CSV export. */
 export function chargesFromCsv(text: string): Charge[] {
-  const lines = text.split(/\r?\n/).filter((l) => l.trim())
-  if (lines.length < 2) return []
-  const sep = [',', ';', '\t'].sort((a, b) => lines[0].split(b).length - lines[0].split(a).length)[0]
-  const rows = lines.map((l) => csvCells(l, sep))
+  return chargesFromRows(csvRows(text))
+}
+
+const headerRowAt = (rows: string[][]): number =>
+  rows.findIndex((r) => r.some((c) => /date/i.test(c)) && r.some((c) => /desc|payee|merchant|name|details|memo|narrative|transaction/i.test(c)))
+
+/** Charges from the rows of a statement export (CSV or spreadsheet). */
+export function chargesFromRows(rows: string[][]): Charge[] {
+  if (rows.length < 2) return []
   // The header row: the first with a date-ish and a description-ish column.
-  const headerAt = rows.findIndex((r) => r.some((c) => /date/i.test(c)) && r.some((c) => /desc|payee|merchant|name|details|memo|narrative|transaction/i.test(c)))
+  const headerAt = headerRowAt(rows)
   const header = headerAt >= 0 ? rows[headerAt].map((c) => c.toLowerCase()) : []
   const find = (re: RegExp): number => header.findIndex((c) => re.test(c))
   let dateCol = find(/^(transaction |trans\.? |posted |posting )?date/)
@@ -347,18 +361,265 @@ function addMonthsKeep(s: string, n: number): string {
 }
 
 /**
- * Text read from a screenshot or a PDF: a statement (lines with dates and amounts) gives repeated
- * charges; otherwise it's a receipt or renewal notice for one subscription.
+ * Puts the lines read from a picture back into rows, left to right, so "Netflix" on the left and
+ * "$15.99" on the right of the same row read as one line. Two lines share a row when their middles
+ * are within half a line's height of each other.
  */
-export function parseDocumentText(text: string, currency: string): Draft[] {
+export function textInRows(lines: OcrLine[]): string {
+  const rows: Array<{ mid: number; h: number; items: OcrLine[] }> = []
+  for (const l of [...lines].sort((a, b) => a.y + a.h / 2 - (b.y + b.h / 2))) {
+    const mid = l.y + l.h / 2
+    const row = rows.find((r) => Math.abs(r.mid - mid) < Math.min(r.h, l.h) * 0.5)
+    if (row) {
+      row.items.push(l)
+      row.mid = (row.mid * (row.items.length - 1) + mid) / row.items.length
+    } else rows.push({ mid, h: l.h, items: [l] })
+  }
+  return rows
+    .sort((a, b) => a.mid - b.mid)
+    .map((r) => r.items.sort((a, b) => a.x - b.x).map((i) => i.text.trim()).join('  '))
+    .join('\n')
+}
+
+// ── Lists of subscriptions ─────────────────────────────────────────────────────────────────
+
+/** A category for something that isn't in the catalog, from words in its name ("Car loan" → Finance). */
+export function guessCategory(name: string): string {
+  const n = name.toLowerCase()
+  if (/\b(loan|debt|credit|card|visa|mastercard|amex|discover|capital one|chase|citi|affirm|klarna|afterpay|bnpl|finance|bank|savings|invest|tax)\b/.test(n)) return 'finance'
+  if (/\b(rent|mortgage|hoa|electric|electricity|power|water|gas|utilit(y|ies)|trash|sewer|energy)\b/.test(n)) return 'housing'
+  if (/\b(insurance|insur|geico|progressive|allstate|state farm|lemonade)\b/.test(n)) return 'insurance'
+  if (/\b(phone|mobile|wireless|internet|wifi|broadband|cable|fiber|verizon|at&t|t-mobile|comcast|xfinity|spectrum)\b/.test(n)) return 'phone'
+  if (/\b(car|auto|vehicle|parking|toll|transit|metro|lease)\b/.test(n)) return 'transport'
+  if (/\b(gym|fitness|health|medical|dental|therapy|pharmacy)\b/.test(n)) return 'health'
+  if (/\b(tuition|school|college|course|class)\b/.test(n)) return 'education'
+  return 'other'
+}
+
+/** The default category id named by a spreadsheet's category cell ("Streaming", "music"), if any. */
+function categoryNamed(cell: string): string | null {
+  const c = cell.trim().toLowerCase()
+  if (!c) return null
+  const hit = DEFAULT_CATEGORIES.find((k) => k.id === c || k.name.toLowerCase() === c || k.name.toLowerCase().split(/ & | /).includes(c))
+  if (hit) return hit.id
+  const guessed = guessCategory(c)
+  return guessed === 'other' ? null : guessed
+}
+
+/** Rows that sum things up rather than being a subscription. */
+const SUMMARY = /^\s*(grand\s+)?(total|subtotal|sum|average|balance|spent|spending|overall|monthly (cost|total|spend)|yearly (cost|total|spend)|per (month|year)|all)\b/i
+
+/** One subscription per row: name, price, and optionally how often, the next date and a category. */
+function draftFromCells(name: string, priceCell: string, cycleCell: string, dateCell: string, categoryCell: string, currency: string): Draft | null {
+  if (!name.trim() || SUMMARY.test(name)) return null
+  const service = findService(name)
+  const money = bestAmount(priceCell) ?? (moneyCell(priceCell) ? { amount: Math.abs(moneyCell(priceCell)!), currency: null, index: 0, length: 0 } : null)
+  if (!money && !service) return null
+  const draft = draftFrom(name, money, cycleIn(cycleCell), null, currency)
+  // Keep the name as written unless it's clearly the catalog service.
+  if (service && norm(name) !== norm(service.name) && !norm(name).includes(norm(service.name))) draft.service = null
+  if (!draft.service) {
+    draft.name = name.trim()
+    draft.categoryId = guessCategory(name)
+  }
+  draft.categoryId = categoryNamed(categoryCell) ?? draft.categoryId
+  const date = sheetDate(dateCell)
+  if (date) draft.date = nextFrom(date, draft.cycle)
+  return draft
+}
+
+const norm = (t: string): string => t.toLowerCase().replace(/[^a-z0-9+]/g, '')
+
+/** A date cell: a full date, or just a day of the month ("15", "15th") for things due monthly. */
+function sheetDate(cell: string): string | null {
+  const t = cell.trim()
+  if (!t) return null
+  const day = /^(\d{1,2})(st|nd|rd|th)?$/i.exec(t)
+  if (day) {
+    const d = Number(day[1])
+    if (d < 1 || d > 31) return null
+    const base = today()
+    return `${base.slice(0, 8)}${String(Math.min(d, daysInMonthOf(base))).padStart(2, '0')}`
+  }
+  if (!/\d/.test(t)) return null
+  return dateIn(t) ?? anyDate(t)
+}
+
+const daysInMonthOf = (ymdText: string): number => new Date(Number(ymdText.slice(0, 4)), Number(ymdText.slice(5, 7)), 0).getDate()
+
+/** Is this a column of money? (Cells with a currency sign or cents, ignoring blanks.) */
+const moneyColumn = (body: string[][], i: number): boolean => {
+  const cells = body.map((r) => (r[i] ?? '').trim()).filter(Boolean)
+  return cells.length > 0 && cells.filter((c) => /^[-(]?\s*([$€£¥₹]|[A-Z]{3})?\s*-?\d[\d,]*([.,]\d{1,2})?\s*\)?$/.test(c) && /[$€£¥₹]|[.,]\d{2}\b/.test(c)).length >= cells.length * 0.6
+}
+
+/**
+ * A spreadsheet that lists subscriptions, bills or debts, one per row ("Netflix | 15.99 | Monthly |
+ * 12/03"), rather than a bank statement.
+ */
+export function subsFromRows(rows: string[][], currency: string): Draft[] {
+  const nameRe = /^(name|service|subscription|bill|item|company|provider|payee|merchant|creditor|lender|account|debt|loan|description|title|expense|vendor|app)s?\b|\b(name|service|subscription|bill|debt|creditor|lender)s?$/i
+  // A header names its columns and has no numbers in it (so a row like "Phone bill, 65.00" isn't one).
+  const headerAt = rows.slice(0, 10).findIndex((r) => !r.some((c) => /\d/.test(c)) && r.some((c) => nameRe.test(c.trim())) && r.some((c) => /price|cost|amount|payment|fee|charge|monthly|bill|due|pay/i.test(c)))
+  const header = headerAt >= 0 ? rows[headerAt].map((c) => c.trim().toLowerCase()) : []
+  const body = rows.slice(headerAt + 1).filter((r) => r.some((c) => c.trim()))
+  const find = (...res: RegExp[]): number => {
+    for (const re of res) {
+      const i = header.findIndex((c) => re.test(c))
+      if (i >= 0) return i
+    }
+    return -1
+  }
+  let nameCol = find(nameRe, /desc|payee|merchant/)
+  // The amount paid each time, not what's left to pay or the interest rate.
+  const notPrice = /balance|owed|remaining|left|limit|apr|rate|interest|%|total paid|original|principal/
+  let priceCol = header.length
+    ? [/min(imum)?\.? ?pay|payment|monthly/, /price|cost|fee|charge|amount|bill|due/].reduce((hit, re) => (hit >= 0 ? hit : header.findIndex((c) => re.test(c) && !notPrice.test(c) && !/date|day|next|first|start|last|renew|when|frequen|cycle|method/.test(c))), -1)
+    : -1
+  const cycleCol = find(/frequen|cycle|billing period|period|interval|recurr|how often|every|renewal type|plan/)
+  const dateCol = find(/next|due|renew|billing date|bill date|pay date|payment date|charge date|date|day/)
+  const categoryCol = find(/categor|type|group|kind/)
+  const currencyCol = find(/^(currency|ccy)$/)
+  const statusCol = find(/^(status|state|active)$/)
+  if (nameCol < 0) nameCol = (body[0] ?? []).findIndex((c, i) => i !== priceCol && /[a-z]{2}/i.test(c) && !cycleIn(c))
+  if (priceCol < 0) priceCol = (body[0] ?? []).findIndex((_, i) => i !== nameCol && moneyColumn(body, i))
+  if (nameCol < 0 || priceCol < 0) return []
+  const cell = (r: string[], i: number): string => (i >= 0 ? (r[i] ?? '') : '')
+  const drafts: Draft[] = []
+  for (const r of body) {
+    if (/cancel|inactive|ended|paused/i.test(cell(r, statusCol))) continue
+    const code = cell(r, currencyCol).trim().toUpperCase()
+    // A price written in the cycle column ("15.99/mo") still counts.
+    const d = draftFromCells(cell(r, nameCol), cell(r, priceCol), cell(r, cycleCol) || cell(r, priceCol), cell(r, dateCol), cell(r, categoryCol), /^[A-Z]{3}$/.test(code) ? code : currency)
+    if (d) drafts.push(d)
+  }
+  return drafts
+}
+
+/**
+ * A spreadsheet or CSV: a bank statement (the same merchants charging again and again) gives the
+ * repeated charges; anything else is read as a list with one subscription per row.
+ */
+export function parseSheet(rows: string[][], currency: string): Draft[] {
+  const list = subsFromRows(rows, currency)
+  const header = (rows[headerRowAt(rows)] ?? []).join(' ').toLowerCase()
+  const listLike = /frequen|cycle|subscription|service|bill|debt|creditor|lender|loan|next|renew|categor/.test(rows.slice(0, 10).flat().join(' ').toLowerCase())
+  const statementLike = /debit|credit|withdrawal|balance|posted|transaction|reference|deposit/.test(header)
+  const charges = chargesFromRows(rows)
+  const repeats = new Set<string>()
+  const seen = new Set<string>()
+  for (const c of charges) {
+    const k = merchantKey(c.description)
+    if (seen.has(k)) repeats.add(k)
+    seen.add(k)
+  }
+  if (charges.length && repeats.size && (statementLike || !listLike || list.length === 0)) return findRecurring(charges, currency)
+  if (list.length) return list
+  return charges.length ? findRecurring(charges, currency) : []
+}
+
+/** Words on a subscription list that describe a row rather than name it. */
+const FILLER = /\b(plan|individual|family|student|duo|premium|basic|standard|plus|tier|renews?|renewal|renewing|expires?|expiring|next|payment|billing|billed|bill|due|charged?|in|days?|left|today|tomorrow|trial|free|active|ends?|per|every|cycle|on|the|at|of|and|starting|since|price|auto|automatic|cancel(led)?|paid|upcoming|ago)\b/gi
+
+/** The name part of a row on a subscription list, or '' when the row is details (price, cycle, date). */
+function listName(line: string): string {
+  return line
+    .replace(AMOUNT, (m) => (/[$€£¥₹₩₺₱₪₦]|\d[.,]\d{2}\b|[A-Z]{3}/.test(m) ? ' ' : m))
+    .replace(/\b\d{1,2}:\d{2}\s*(am|pm)?\b/gi, ' ')
+    .replace(/\b\d{1,2}\/\d{1,2}(\/\d{2,4})?\b|\b20\d\d-\d\d-\d\d\b|\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s*\d{1,2}(st|nd|rd|th)?,?(\s*20\d\d)?\b|\b\d{1,2}(st|nd|rd|th)?\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?(\s*20\d\d)?/gi, ' ')
+    .replace(/\b(daily|weekly|bi-?weekly|fortnightly|monthly|quarterly|yearly|annual(ly)?|semi-?annual(ly)?|every\s+\d+\s*(day|week|month|year)s?|\/\s*(mo(nth)?|yr|year|wk|week|day)|(a|per) (day|week|month|year)|mo|yr)\b/gi, ' ')
+    .replace(/\b\d+\s*(%|days?|d|weeks?|months?)\b/gi, ' ')
+    .replace(FILLER, ' ')
+    .replace(/[^\p{L}\p{N}&+'. ]+/gu, ' ')
+    .replace(/\b\d+\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/^[.'\s]+|[.'\s]+$/g, '')
+    .trim()
+}
+
+/**
+ * A screenshot of a list of subscriptions (another subscription app, the App Store's subscriptions
+ * page, a budgeting app): each entry is a row with a name and usually a price, sometimes with the
+ * cycle or the next date on the same row or the next one.
+ */
+export function parseList(text: string, currency: string): Draft[] {
+  interface Entry {
+    name: string
+    service: Service | null
+    money: Money | null
+    cycle: Cycle | null
+    date: string | null
+  }
+  const entries: Entry[] = []
+  let cur: Entry | null = null
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim()
+    if (!line) continue
+    if (SUMMARY.test(line)) {
+      cur = null
+      continue
+    }
+    const money = amountsIn(line).find((a) => a.currency || !Number.isInteger(a.amount)) ?? null
+    const cycle = cycleIn(line)
+    const date = /\d/.test(line) ? dateIn(line) : null
+    const name = listName(line)
+    const isName = /\p{L}.*\p{L}/u.test(name) && name.length <= 48 && (findService(line) !== null || name.split(' ').length <= 4)
+    if (isName && (!cur || cur.name)) {
+      cur = { name, service: findService(line), money: null, cycle: null, date: null }
+      entries.push(cur)
+    } else if (isName && cur) {
+      cur.name = name
+      cur.service = findService(line)
+    }
+    if (!cur) {
+      if (!money) continue
+      // Details before any name (a price shown above its name): hold them for the next name.
+      cur = { name: '', service: null, money: null, cycle: null, date: null }
+      entries.push(cur)
+    }
+    cur.money ??= money
+    cur.cycle ??= cycle
+    cur.date ??= date
+  }
+  const drafts: Draft[] = []
+  for (const e of entries) {
+    if (!e.name) continue
+    // The service is looked up on the whole row: "YouTube Premium" is the service even though
+    // "Premium" was dropped from the name as a plan word.
+    const service = e.service ?? findService(e.name)
+    if (!e.money && !service) continue
+    const draft = draftFrom(service?.name ?? e.name, e.money, e.cycle, e.date, currency)
+    if (!draft.service) draft.categoryId = guessCategory(e.name)
+    drafts.push(draft)
+  }
+  return drafts
+}
+
+/** Words on a receipt or order confirmation, which is about one purchase however many lines it has. */
+const RECEIPT = /\b(sub-?total|tax|vat|gst|order (id|number|no\.?|date)|receipt|invoice|billed to|document no|payment method|thank you for your (purchase|order|subscription))\b/i
+
+/**
+ * Text read from a screenshot or a PDF: a statement (the same merchant charged again and again)
+ * gives the repeated charges; a list of subscriptions gives one each; otherwise it's a receipt or
+ * renewal notice for one subscription.
+ */
+export function parseDocumentText(raw: string, currency: string): Draft[] {
+  // Email addresses and links name services that aren't the subscription ("…@icloud.com").
+  const text = raw.replace(/\S+@\S+\.\w+|\bhttps?:\/\/\S+|\bwww\.\S+/gi, ' ')
   const charges = chargesFromText(text)
-  const recurring = charges.length >= 3 ? findRecurring(charges, currency) : []
+  const keys = charges.map((c) => merchantKey(c.description))
+  const repeated = keys.some((k, i) => keys.indexOf(k) !== i)
+  const recurring = charges.length >= 3 && repeated ? findRecurring(charges, currency) : []
   if (recurring.length) return recurring
+  const list = RECEIPT.test(text) ? [] : parseList(text, currency)
+  if (list.length >= 2) return list
   const service = findService(text)
-  const money = bestAmount(
-    // Prefer an amount near words like total/price/renew.
-    text.split(/\r?\n/).find((l) => /total|price|amount|renew|charged|billed|per|\/mo|month|year/i.test(l) && bestAmount(l)) ?? text
-  )
+  // Prefer a real amount (a currency or cents, not the "3" in "Renews Dec 3") near words like
+  // price/renew, then total (which may include tax), then any.
+  const lines = text.split(/\r?\n/)
+  const moneyIn = (l: string): Money | null => amountsIn(l).find((a) => a.currency || !Number.isInteger(a.amount)) ?? null
+  const near = (re: RegExp): Money | null => lines.filter((l) => re.test(l)).map(moneyIn).find(Boolean) ?? null
+  const money = near(/price|renew|charged|billed|per\b|\/ ?mo|month|year|plan/i) ?? near(/total|amount/i) ?? lines.map(moneyIn).find(Boolean) ?? bestAmount(text)
   if (!service && !money) return []
   const renew = /(renew|next|due|billing date|expires?|trial ends?)[^\n]*/i.exec(text)
   const date = (renew && dateIn(renew[0])) || null

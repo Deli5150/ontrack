@@ -2,7 +2,8 @@ import * as DocumentPicker from 'expo-document-picker'
 import { EncodingType, readAsStringAsync } from 'expo-file-system/legacy'
 import * as ImagePicker from 'expo-image-picker'
 import { Platform } from 'react-native'
-import { chargesFromCsv, findRecurring, parseDocumentText, type Draft } from './parse'
+import OntrackOcr from '../../modules/ontrack-ocr/src/OntrackOcrModule'
+import { csvRows, parseDocumentText, parseSheet, textInRows, type Draft } from './parse'
 import { desktop } from './storage'
 
 // Finding subscriptions in a photo (receipt, renewal email, App Store screenshot) or a file (bank
@@ -12,9 +13,8 @@ import { desktop } from './storage'
 export class ImportError extends Error {}
 
 async function ocrNative(uri: string): Promise<string> {
-  const { extractTextFromImage, isSupported } = await import('expo-text-extractor')
-  if (!isSupported) throw new ImportError("This device can't read text from photos.")
-  return (await extractTextFromImage(uri)).join('\n')
+  if (!OntrackOcr) throw new ImportError("This device can't read text from photos.")
+  return textInRows(await OntrackOcr.recognize(uri))
 }
 
 /** Picks screenshots or photos and reads the subscriptions in them. Null when cancelled. */
@@ -31,10 +31,13 @@ export async function importFromPhotos(currency: string): Promise<Draft[] | null
   return dedupe(drafts)
 }
 
-/** Picks a CSV or PDF statement and finds the recurring charges in it. Null when cancelled. */
+/**
+ * Picks a file: a spreadsheet (CSV or Excel) listing subscriptions, or a bank statement (CSV, Excel
+ * or PDF) whose recurring charges are subscriptions. Null when cancelled.
+ */
 export async function importFromFile(currency: string): Promise<Draft[] | null> {
   const res = await DocumentPicker.getDocumentAsync({
-    type: ['text/csv', 'text/comma-separated-values', 'application/pdf', 'text/plain', 'application/vnd.ms-excel', '*/*'],
+    type: ['text/csv', 'text/comma-separated-values', 'application/pdf', 'text/plain', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', '*/*'],
     copyToCacheDirectory: true,
     base64: false
   })
@@ -51,9 +54,32 @@ export async function importFromFile(currency: string): Promise<Draft[] | null> 
     }
     return dedupe(parseDocumentText(text, currency))
   }
+  if (/\.xlsx$/i.test(asset.name) || asset.mimeType?.includes('spreadsheetml')) {
+    const base64 = asset.file ? await blobToBase64(asset.file) : await readAsStringAsync(asset.uri, { encoding: EncodingType.Base64 })
+    const { rowsFromXlsx } = await import('./xlsx')
+    let rows: string[][]
+    try {
+      rows = rowsFromXlsx(base64ToBytes(base64))
+    } catch {
+      throw new ImportError("Couldn't open this spreadsheet. Try saving it as CSV and importing that.")
+    }
+    return dedupe(parseSheet(rows, currency))
+  }
+  if (/\.(xls|numbers|ods)$/i.test(asset.name)) {
+    throw new ImportError('OnTrack reads CSV and Excel (.xlsx) files. Save or export the spreadsheet as one of those and import it again.')
+  }
   const text = asset.file ? await asset.file.text() : await readAsStringAsync(asset.uri)
-  const charges = chargesFromCsv(text)
-  return dedupe(charges.length ? findRecurring(charges, currency) : parseDocumentText(text, currency))
+  const rows = csvRows(text)
+  // A real table has several columns; anything else is plain text (a pasted receipt or list).
+  const tabular = rows.length >= 2 && rows.filter((r) => r.length >= 2).length >= rows.length * 0.6
+  return dedupe(tabular ? parseSheet(rows, currency) : parseDocumentText(text, currency))
+}
+
+function base64ToBytes(base64: string): Uint8Array {
+  const bin = atob(base64)
+  const bytes = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+  return bytes
 }
 
 async function blobToBase64(blob: Blob): Promise<string> {
