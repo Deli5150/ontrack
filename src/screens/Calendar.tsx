@@ -1,8 +1,9 @@
 import { FadeIn } from '../ui/motion'
 import { useShallow } from 'zustand/react/shallow'
 import { Ionicons } from '@expo/vector-icons'
-import { useMemo, useRef, useState } from 'react'
-import { PanResponder, Pressable, ScrollView, Text, View } from 'react-native'
+import { useIsFocused } from '@react-navigation/native'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { PanResponder, Platform, Pressable, ScrollView, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { convert, formatMoney } from '../lib/currency'
 import { addMonths, daysInMonth, formatDate, MONTH_NAMES, paymentsBetween, priceOn, today } from '../lib/dates'
@@ -67,6 +68,44 @@ export default function Calendar() {
       }
     })
   ).current
+
+  // Desktop: a two-finger swipe on the trackpad (sideways scrolling) or ← → change the month, as a
+  // swipe anywhere does on phones (#3). One swipe is one month: the scrolling that carries on after
+  // the fingers lift is ignored until it stops.
+  const focused = useIsFocused()
+  const goRef = useRef(go)
+  goRef.current = go
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !focused) return
+    let sum = 0
+    let lockedUntil = 0
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return
+      const now = Date.now()
+      if (now < lockedUntil) {
+        lockedUntil = now + 250
+        return
+      }
+      sum += e.deltaX
+      if (Math.abs(sum) > 90) {
+        goRef.current(sum > 0 ? 1 : -1)
+        sum = 0
+        lockedUntil = now + 450
+      }
+    }
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null
+      if (e.metaKey || e.ctrlKey || e.altKey || el?.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el?.tagName ?? '')) return
+      if (e.key === 'ArrowLeft') goRef.current(-1)
+      else if (e.key === 'ArrowRight') goRef.current(1)
+    }
+    window.addEventListener('wheel', onWheel, { passive: true })
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('wheel', onWheel)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [focused])
 
   const openDay = (date: string) => {
     const list = byDay.get(date)

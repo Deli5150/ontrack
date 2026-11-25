@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.2] - 2026-11-24
+
+- Calendar on Mac, Windows and Linux: swipe sideways with two fingers on the trackpad, or press ← and →, to change month, as swiping does on phones (#3)
+
 ## [1.0.1] - 2026-11-16
 
 - Import from photos finds every subscription in a screenshot of a list (another subscription app, the App Store's Subscriptions page, a budgeting app), not just one (#1). Text is now read with each line's position on the screen, so a name and its price on the same row stay together

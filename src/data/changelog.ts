@@ -2,6 +2,11 @@
 
 export const CHANGELOG: Array<{ version: string; date: string; items: string[] }> = [
   {
+    version: '1.0.2',
+    date: '2026-11-24',
+    items: ['Calendar on Mac, Windows and Linux: swipe sideways with two fingers on the trackpad, or press ← and →, to change month']
+  },
+  {
     version: '1.0.1',
     date: '2026-11-16',
     items: [

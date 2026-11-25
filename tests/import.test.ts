@@ -106,9 +106,10 @@ test('an App Store receipt is one subscription at its plan price, not the tax or
 })
 
 test('OnTrack’s own spreadsheet export imports back', () => {
-  const csv = 'Name,Price,Currency,Cycle,Next payment,First payment,List,Category,Status,URL,Notes\nNetflix,15.49,USD,Monthly,2026-12-03,2024-01-03,Personal,Streaming,Active,,\nGym,40,EUR,Every 2 weeks,2026-11-20,2025-06-01,,Health & Fitness,Active,,"Notes, with a comma"\nHulu,7.99,USD,Monthly,,2023-01-01,,Streaming,Cancelled 2026-01-01,,'
+  // Next payments well in the future: one that has passed moves on to its next date on import.
+  const csv = 'Name,Price,Currency,Cycle,Next payment,First payment,List,Category,Status,URL,Notes\nNetflix,15.49,USD,Monthly,2030-12-03,2024-01-03,Personal,Streaming,Active,,\nGym,40,EUR,Every 2 weeks,2030-11-20,2025-06-01,,Health & Fitness,Active,,"Notes, with a comma"\nHulu,7.99,USD,Monthly,,2023-01-01,,Streaming,Cancelled 2026-01-01,,'
   assert.deepEqual(
     parseSheet(csvRows(csv), 'USD').map((d) => [d.name, d.price, d.currency, `${d.cycle.every}${d.cycle.unit[0]}`, d.date, d.categoryId]),
-    [['Netflix', 15.49, 'USD', '1m', '2026-12-03', 'streaming'], ['Gym', 40, 'EUR', '2w', '2026-11-20', 'health']]
+    [['Netflix', 15.49, 'USD', '1m', '2030-12-03', 'streaming'], ['Gym', 40, 'EUR', '2w', '2030-11-20', 'health']]
   )
 })

@@ -1,6 +1,6 @@
 {
   "name": "ontrack",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "OnTrack — a subscription manager for macOS, Windows, Linux, iOS and Android",
   "main": "index.ts",
   "dependencies": {
